@@ -5,7 +5,7 @@ def create_table():
     conn = psycopg2.connect(
         user="Venki",
         password="Venki@034",
-        host="localhost",
+        host="3.6.40.18",
         port="5432",
         database="hospital_management"
     )
