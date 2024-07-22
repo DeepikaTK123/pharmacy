@@ -15,7 +15,16 @@ import {
 } from '@chakra-ui/react';
 
 const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) => {
-  const [medicine, setMedicine] = useState(updateMedicineProp);
+  console.log(updateMedicineProp);
+  const [medicine, setMedicine] = useState({
+    batchNo: '',
+    expiry_date: '',
+    id: '',
+    manufacturedBy: '',
+    mrp: '',
+    name: '',
+    quantity: ''
+  });
   const toast = useToast();
 
   const handleInputChange = (e) => {
@@ -25,8 +34,11 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
 
   const handleSubmit = () => {
     if (medicine.name && medicine.batchNo && medicine.quantity && medicine.expiry_date && medicine.mrp && medicine.manufacturedBy) {
-      medicine.expiry_date = new Date(medicine.expiry_date);
-      updateMedicine(medicine);
+      const updatedMedicine = {
+        ...medicine,
+        expiry_date: medicine.expiry_date, // Convert date back to Unix timestamp
+      };
+      updateMedicine(updatedMedicine);
       onClose();
     } else {
       toast({
@@ -48,7 +60,12 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
   };
 
   useEffect(() => {
-    setMedicine({ ...updateMedicineProp });
+    setMedicine({
+      ...updateMedicineProp,
+      batchNo: updateMedicineProp.batch_no,
+      expiry_date: formatDate(updateMedicineProp.expiry_date),
+      manufacturedBy: updateMedicineProp.manufactured_by,
+    });
   }, [updateMedicineProp]);
 
   return (
@@ -103,7 +120,7 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
             <Input
               type="date"
               name="expiry_date"
-              value={formatDate(medicine.expiry_date)}
+              value={medicine.expiry_date}
               onChange={handleInputChange}
             />
           </FormControl>

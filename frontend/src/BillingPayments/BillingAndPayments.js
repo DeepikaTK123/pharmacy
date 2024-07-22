@@ -165,10 +165,16 @@ const PharmacyBilling = () => {
   };
 
   return (
-    <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY={{ sm: 'scroll', lg: 'hidden' }}>
+    <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
       <Flex flexDirection="column">
-        <Flex mt="45px" mb="20px" justifyContent="space-between" align={{ base: 'start', md: 'center' }}>
-          <Text color={textColor} fontSize="2xl" ms="24px" fontWeight="700">
+        <Flex
+          mt={{ base: '20px', md: '45px' }}
+          mb="20px"
+          flexDirection={{ base: 'column', md: 'row' }}
+          justifyContent="space-between"
+          align={{ base: 'start', md: 'center' }}
+        >
+          <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
             Pharmacy Billing
           </Text>
           <Button
@@ -181,14 +187,14 @@ const PharmacyBilling = () => {
             gap="10px"
             fontFamily="inherit"
             fontWeight="500"
-            fontSize="13px"
+            fontSize={{ base: 'sm', md: '13px' }}
             textTransform="uppercase"
             letterSpacing="0.4px"
             color="white"
             backgroundColor="#3d94cf"
             border="2px solid rgba(255, 255, 255, 0.333)"
             borderRadius="40px"
-            padding="16px 24px 16px 28px"
+            padding={{ base: '12px 20px', md: '16px 24px' }}
             transform="translate(0px, 0px) rotate(0deg)"
             transition="0.2s"
             boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
@@ -206,92 +212,93 @@ const PharmacyBilling = () => {
           </Button>
         </Flex>
 
-        <Flex justifyContent={"center"} mt={30}>
-          <Card width={"97%"} borderRadius={40}>
+        <Flex justifyContent="center" mt={{ base: '20px', md: '30px' }}>
+          <Card width={{ base: '100%', md: '97%' }} borderRadius="md">
             {loading ? (
               <Flex justify="center" align="center" height="10vh">
                 <Loading />
               </Flex>
             ) : (
-              <Box p={5}>
+              <Box p={{ base: 3, md: 5 }}>
                 <Input
                   placeholder="Search by ID, Name, or Phone Number"
                   mb={4}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <Table variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>ID</Th>
-                      <Th>Name</Th>
-                      <Th>Phone Number</Th>
-                      <Th>Medicines</Th>
-                      <Th>Subtotal</Th>
-                      <Th>CGST</Th>
-                      <Th>SGST</Th>
-                      <Th>Discount</Th>
-                      <Th>Total</Th>
-                      <Th>Date</Th>
-                      <Th>Action</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {filteredBilling.map((item) => (
-                      <Tr key={item.id}>
-                        <Td>{item.id}</Td>
-                        <Td>{item.patient_name}</Td>
-                        <Td>{item.phone_number}</Td>
-                        <Td>
-                          <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
-                            <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
-                          </Tooltip>
-                        </Td>
-                        <Td>{item.subtotal}</Td>
-                        <Td>{item.cgst}</Td>
-                        <Td>{item.sgst}</Td>
-                        <Td>{item.discount}</Td>
-                        <Td>{item.total}</Td>
-                        <Td>{new Date(item.date).toLocaleString("en-US", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                              hour: "numeric",
-                              minute: "numeric",
-                              hour12: true,
-                            })}</Td>
-                        
-                        <Td>
-                          <Flex>
-                            <IconButton
-                              icon={<MdVisibility />}
-                              onClick={() => handleViewBilling(item)}
-                              aria-label="View Pharmacy Billing"
-                              mr={2}
-                              colorScheme="blue"
-                              size="sm"
-                            />
-                            <IconButton
-                              icon={<MdEdit />}
-                              onClick={() => handleEditBilling(item)}
-                              aria-label="Edit Pharmacy Billing"
-                              mr={2}
-                              colorScheme="teal"
-                              size="sm"
-                            />
-                            <IconButton
-                              icon={<MdDelete />}
-                              onClick={() => handleDeleteBillingModal(item)}
-                              aria-label="Delete Pharmacy Billing"
-                              colorScheme="red"
-                              size="sm"
-                            />
-                          </Flex>
-                        </Td>
+                <Box overflowX="auto">
+                  <Table variant="simple" size={{ base: 'sm', md: 'md' }}>
+                    <Thead>
+                      <Tr>
+                        <Th>ID</Th>
+                        <Th>Name</Th>
+                        <Th>Phone Number</Th>
+                        <Th>Medicines</Th>
+                        <Th>Subtotal</Th>
+                        <Th>CGST</Th>
+                        <Th>SGST</Th>
+                        <Th>Discount</Th>
+                        <Th>Total</Th>
+                        <Th>Date</Th>
+                        <Th>Action</Th>
                       </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                    </Thead>
+                    <Tbody>
+                      {filteredBilling.map((item) => (
+                        <Tr key={item.id}>
+                          <Td>{item.id}</Td>
+                          <Td>{item.patient_name}</Td>
+                          <Td>{item.phone_number}</Td>
+                          <Td>
+                            <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
+                              <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
+                            </Tooltip>
+                          </Td>
+                          <Td>{item.subtotal}</Td>
+                          <Td>{item.cgst}</Td>
+                          <Td>{item.sgst}</Td>
+                          <Td>{item.discount}</Td>
+                          <Td>{item.total}</Td>
+                          <Td>{new Date(item.date).toLocaleString("en-US", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                              })}</Td>
+                          
+                          <Td>
+                            <Flex flexDirection={{ base: 'column', md: 'row' }}>
+                              <IconButton
+                                icon={<MdVisibility />}
+                                onClick={() => handleViewBilling(item)}
+                                aria-label="View Pharmacy Billing"
+                                mb={{ base: 1, md: 0 }}
+                                mr={{ base: 0, md: 2 }}
+                                colorScheme="blue"
+                                size="sm"
+                              />
+                              <IconButton
+                                icon={<MdEdit />}
+                                onClick={() => handleEditBilling(item)}
+                                aria-label="Edit Pharmacy Billing"
+                                mb={{ base: 1, md: 0 }}
+                                mr={{ base: 0, md: 2 }}
+                                colorScheme="teal"
+                                size="sm"
+                              />
+                              <IconButton
+                                icon={<MdDelete />}
+                                onClick={() => handleDeleteBillingModal(item)}
+                                aria-label="Delete Pharmacy Billing"
+                                colorScheme="red"
+                                size="sm"
+                              />
+                            </Flex>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
               </Box>
             )}
           </Card>

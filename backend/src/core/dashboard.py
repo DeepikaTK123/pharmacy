@@ -24,7 +24,9 @@ class GetDashboardCount(Resource):
             sql_select_query = f"""
                 SELECT 'medicines' AS table_name, COUNT(*) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
                 UNION ALL
-                SELECT 'billing' AS table_name, COUNT(*) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}';
+                SELECT 'billing' AS table_name, COUNT(*) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}'
+                UNION ALL
+                SELECT 'billing_total_sum' AS table_name, COALESCE(SUM(total), 0) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}';
             """
             df = pd.read_sql_query(sql_select_query, connection)
             data_json = df.to_json(orient='records')
@@ -43,6 +45,7 @@ class GetDashboardCount(Resource):
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
 api.add_resource(GetDashboardCount, "/api/dashboard/getdashboardcount")
+
 
 
 class GetRevenueChart(Resource):

@@ -95,13 +95,13 @@ function Login() {
       alignItems="center"
       justifyContent="center"
       p={{ base: 4, md: 8 }}
+      mt={4}
+      mb={4}
     >
       <Flex
-        width="100%"
-        maxW="1200px"
+        width={{ base: "100%", md: "80%", lg: "60%" }}
         mx="auto"
         my="auto"
-        height="100%"
         bg="white"
         borderRadius="15px"
         boxShadow="lg"
@@ -147,7 +147,7 @@ function Login() {
             </Text>
           </Box>
 
-          <FormControl onKeyPress={handleKeyPress} mt={100}>
+          <FormControl onKeyPress={handleKeyPress} mt={50} mb={100}>
             <FormLabel
               display="flex"
               ms="4px"

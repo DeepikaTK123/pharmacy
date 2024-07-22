@@ -19,6 +19,9 @@ class AddBillingRecord(Resource):
             value = request.json
             cursor = connection.cursor()
 
+            # Filter out medicines with a quantity of 0
+            medicines = [med for med in value["medicines"] if med["quantity"] > 0]
+
             # Insert billing record
             insert_query = """
             INSERT INTO billing(patient_name, phone_number, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender)
@@ -26,14 +29,14 @@ class AddBillingRecord(Resource):
             """
             record_to_insert = (
                 value["patientName"], value["phoneNumber"], value["date"], value["status"], value["discount"],
-                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(value["medicines"]),
+                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(medicines),
                 account_id['tenant_id'], value.get("ageYear"), value.get("ageMonth"), value.get("gender")
             )
             cursor.execute(insert_query, record_to_insert)
             billing_id = cursor.fetchone()[0]
 
             # Update quantities in medicines table
-            for medicine in value["medicines"]:
+            for medicine in medicines:
                 update_medicine_query = """
                 UPDATE medicines
                 SET quantity = quantity - %s
@@ -55,7 +58,9 @@ class AddBillingRecord(Resource):
             logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
             logger.error(f"Exception: {str(e)}")
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+
 api.add_resource(AddBillingRecord, "/api/billing/add")
+
 
 class EditBillingRecord(Resource):
     @token_required
@@ -66,10 +71,12 @@ class EditBillingRecord(Resource):
             value = request.json
             billing_id = value["id"]
             cursor = connection.cursor()
+
             # Get the original billing record
             cursor.execute("SELECT medicines FROM billing WHERE id=%s", (billing_id,))
             original_record = cursor.fetchone()
             original_medicines = original_record[0]
+            
             # Reverse the quantity deduction for original medicines
             for medicine in original_medicines:
                 update_medicine_query = """
@@ -79,6 +86,9 @@ class EditBillingRecord(Resource):
                 """
                 cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"]))
 
+            # Filter out medicines with zero quantity
+            updated_medicines = [med for med in value["medicines"] if med["quantity"] > 0]
+
             # Update the billing record
             update_query = """
             UPDATE billing SET patient_name=%s, phone_number=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, medicines=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s
@@ -86,13 +96,13 @@ class EditBillingRecord(Resource):
             """
             record_to_update = (
                 value["patientName"], value["phoneNumber"], value["date"], value["status"], value["discount"],
-                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(value["medicines"]),
+                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(updated_medicines),
                 account_id['tenant_id'], value.get("ageYear"), value.get("ageMonth"), value.get("gender"), billing_id
             )
             cursor.execute(update_query, record_to_update)
 
             # Deduct the quantity for the new medicines
-            for medicine in value["medicines"]:
+            for medicine in updated_medicines:
                 update_medicine_query = """
                 UPDATE medicines
                 SET quantity = quantity - %s
@@ -115,8 +125,8 @@ class EditBillingRecord(Resource):
             logger.error(f"Exception: {str(e)}")
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
-
 api.add_resource(EditBillingRecord, "/api/billing/edit")
+
 
 class DeleteBillingRecord(Resource):
     @token_required

@@ -20,8 +20,10 @@ import {
   Td,
   Card,
   CardBody,
+  Stack,
+  useBreakpointValue,
 } from '@chakra-ui/react';
-import { FaPills, FaFileInvoice } from 'react-icons/fa';
+import { FaPills, FaFileInvoice, FaMoneyBillWave } from 'react-icons/fa';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { getDashboardCount, getRevenueChart, getLowStockMedicines } from 'networks';
@@ -33,7 +35,9 @@ const Dashboard = () => {
   const [billAmounts, setBillAmounts] = useState([]);
   const [billDates, setBillDates] = useState([]);
   const [lowStockMedicines, setLowStockMedicines] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [timeRange, setTimeRange] = useState('daily');
+  const cardSize = useBreakpointValue({ base: '100%', md: '33%' });
 
   useEffect(() => {
     fetchDashboardData();
@@ -52,6 +56,9 @@ const Dashboard = () => {
     try {
       const response = await getDashboardCount();
       setDashboardData(response.data.data);
+
+      const totalRevenueData = response.data.data.find(item => item.table_name === 'billing_total_sum');
+      setTotalRevenue(totalRevenueData ? totalRevenueData.row_count : 0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -62,7 +69,7 @@ const Dashboard = () => {
   const fetchBillAmounts = async (range) => {
     setLoading(true);
     try {
-      const response = await getRevenueChart( range );
+      const response = await getRevenueChart(range);
       setBillAmounts(response.data.data.map(item => item.amount));
       setBillDates(response.data.data.map(item => adjustTimeZone(item.interval_date)));
     } catch (error) {
@@ -86,7 +93,7 @@ const Dashboard = () => {
 
   const adjustTimeZone = (date) => {
     const offset = 5.5 * 60 * 60 * 1000; // Offset in milliseconds for -5:30 hours
-    return date ;
+    return date;
   };
 
   const getRowCount = (tableName) => {
@@ -98,7 +105,7 @@ const Dashboard = () => {
     const now = new Date();
     const offset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
     let min, max;
-  
+
     switch (range) {
       case 'daily':
         min = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - offset;
@@ -121,10 +128,9 @@ const Dashboard = () => {
         max = now.getTime() + offset;
         break;
     }
-  
+
     return { min, max };
   };
-  
 
   const xAxisRange = getXAxisRange(timeRange);
 
@@ -162,16 +168,21 @@ const Dashboard = () => {
         </Flex>
         <Flex flexDirection="column">
           <Box flex="1" p={4}>
-            <Flex justifyContent="center">
-              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4}>
+            <Flex justifyContent="space-between" wrap="wrap">
+              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
                 <StatLabel>Total Medicines in Pharmacy</StatLabel>
                 <StatNumber>{getRowCount('medicines')}</StatNumber>
                 <FaPills size={32} color="orange" />
               </Stat>
-              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4}>
+              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
                 <StatLabel>Total Bills</StatLabel>
                 <StatNumber>{getRowCount('billing')}</StatNumber>
                 <FaFileInvoice size={32} color="teal" />
+              </Stat>
+              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
+                <StatLabel>Total Revenue</StatLabel>
+                <StatNumber>₹{totalRevenue.toFixed(2)}</StatNumber>
+                <FaMoneyBillWave size={32} color="green" />
               </Stat>
             </Flex>
             <Box mt={8}>

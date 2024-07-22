@@ -18,6 +18,7 @@ import {
   Text,
   Divider,
   Flex,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -25,6 +26,7 @@ import jsPDF from 'jspdf';
 const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
   const invoiceRef = useRef();
   const [userData, setUserData] = useState({});
+  const modalSize = useBreakpointValue({ base: 'full', md: '6xl' });
 
   useEffect(() => {
     const data = JSON.parse(sessionStorage.getItem('data'));
@@ -35,33 +37,38 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
 
   const handleDownloadInvoice = async () => {
     const invoice = invoiceRef.current;
-    const canvas = await html2canvas(invoice);
+    const canvas = await html2canvas(invoice, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF();
-    const imgProperties = pdf.getImageProperties(imgData);
+    const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save('invoice.pdf');
   };
 
   const handlePrintInvoice = async () => {
     const invoice = invoiceRef.current;
-    const printWindow = window.open('', '', 'width=800,height=600');
-    const canvas = await html2canvas(invoice);
+    const canvas = await html2canvas(invoice, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
+    const printWindow = window.open('', '', 'width=800,height=600');
     printWindow.document.write('<html><head><title>Invoice</title>');
     printWindow.document.write('<style>');
     printWindow.document.write(`
       body {
         font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: white;
       }
       .invoice-box {
-        width: 100%;
+        width: 210mm;
+        height: 297mm;
+        padding: 20mm;
         margin: auto;
-        padding: 20px;
         border: 1px solid #eee;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        background-color: white;
+        box-sizing: border-box;
       }
       .invoice-box table {
         width: 100%;
@@ -114,13 +121,21 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="6xl">
+    <Modal isOpen={isOpen} onClose={onClose} size={modalSize} isCentered>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Invoice</ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
-          <Box ref={invoiceRef} mb={4} p={4} borderWidth="1px" borderRadius="lg" boxShadow="md" className="invoice-box">
+        <ModalBody maxH={{ base: '70vh', md: '80vh' }} overflowY="auto" bg="white">
+          <Box
+            ref={invoiceRef}
+            p={4}
+            borderWidth="1px"
+            borderRadius="lg"
+            boxShadow="md"
+            className="invoice-box"
+            style={{ width: '210mm', height: '297mm', backgroundColor: 'white', boxSizing: 'border-box', margin: '0 auto' }}
+          >
             <Flex justify="center" mb={4} flexDirection="column" alignItems="center">
               <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
               <Text>{userData.address} - {userData.pincode}</Text>
@@ -129,6 +144,11 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
             <Divider my={4} />
             <Flex justify="space-between" mb={4}>
               <Box textAlign="left">
+                <Text fontSize={20}><strong>{billingData.patient_name}</strong></Text>
+                <Text>{`${billingData.age_year} years, ${billingData.age_month} months`}</Text>
+                <Text>{billingData.gender}</Text>
+              </Box>
+              <Box textAlign="right">
                 <Text><strong>Invoice ID:</strong> {billingData.id}</Text>
                 <Text><strong>Date:</strong> {new Date(billingData.date).toLocaleString("en-US", {
                   day: "numeric",
@@ -138,11 +158,8 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
               </Box>
             </Flex>
             <Divider my={4} />
-            <Box>
-              <Text mb={2}>{billingData.patient_name}</Text>
-              <Text mb={2}>{billingData.phone_number}</Text>
-              <Text mb={2}>{billingData.age_year} Years, {billingData.age_month} Months /  {billingData.gender}</Text>
-              <Table variant="simple">
+            <Box overflowX="auto">
+              <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
                     <Th>Medicine Name</Th>
@@ -168,22 +185,22 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
                   ))}
                 </Tbody>
               </Table>
-              <Divider my={4} />
-              <Flex justify="flex-end">
-                <Box textAlign="right">
-                  <Text><strong>Subtotal:</strong> {`₹${billingData.subtotal}`}</Text>
-                  <Text><strong>CGST:</strong> {`₹${billingData.cgst}`}</Text>
-                  <Text><strong>SGST:</strong> {`₹${billingData.sgst}`}</Text>
-                  <Text><strong>Discount:</strong> {`${billingData.discount}%`}</Text>
-                  <Text fontSize="lg" fontWeight="bold"><strong>Total:</strong> {`₹${billingData.total}`}</Text>
-                </Box>
-              </Flex>
             </Box>
+            <Divider my={4} />
+            <Flex justify="flex-end">
+              <Box textAlign="right">
+                <Text><strong>Subtotal:</strong> {`₹${billingData.subtotal}`}</Text>
+                <Text><strong>CGST:</strong> {`₹${billingData.cgst}`}</Text>
+                <Text><strong>SGST:</strong> {`₹${billingData.sgst}`}</Text>
+                <Text><strong>Discount:</strong> {`${billingData.discount}%`}</Text>
+                <Text fontSize="lg" fontWeight="bold"><strong>Total:</strong> {`₹${billingData.total}`}</Text>
+              </Box>
+            </Flex>
           </Box>
         </ModalBody>
         <ModalFooter>
           <Button colorScheme="blue" onClick={handleDownloadInvoice}>
-            Download Invoice
+            Download PDF
           </Button>
           <Button colorScheme="green" onClick={handlePrintInvoice} ml={3}>
             Print Invoice

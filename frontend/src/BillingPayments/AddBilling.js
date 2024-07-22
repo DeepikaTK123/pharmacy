@@ -14,7 +14,6 @@ import {
   Button,
   useToast,
   Box,
-  Text,
   IconButton,
   Flex,
   Table,
@@ -59,6 +58,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
           value: med.id,
           label: med.name,
           quantityAvailable: med.quantity,
+          originalQuantity: med.quantity, // Save the original quantity
           mrp: med.mrp,
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
@@ -86,10 +86,16 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   };
 
   const handleMedicineChange = (selectedOptions) => {
-    const updatedMedicines = selectedOptions.map(option => ({
-      ...option,
-      quantity: 1,
-    }));
+    const updatedMedicines = selectedOptions.map(option => {
+      const existingMedicine = newBilling.medicines.find(med => med.value === option.value);
+      const medicine = medicines.find(med => med.value === option.value);
+      return existingMedicine || {
+        ...option,
+        quantity: 0, // Initialize with 0
+        quantityAvailable: medicine.quantityAvailable,
+      };
+    });
+
     setNewBilling({ ...newBilling, medicines: updatedMedicines });
   };
 
@@ -97,25 +103,27 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
     const updatedMedicines = newBilling.medicines.map(med => {
       if (med.value === medicine.value) {
         const newQuantity = med.quantity + change;
+        const updatedQuantityAvailable = med.originalQuantity - newQuantity;
         return {
           ...med,
-          quantity: Math.max(1, newQuantity),
-          quantityAvailable: med.quantityAvailable - change,
+          quantity: Math.max(0, newQuantity), // Allow quantity to be zero
+          quantityAvailable: updatedQuantityAvailable,
         };
       }
       return med;
     });
+
     setNewBilling({ ...newBilling, medicines: updatedMedicines });
   };
 
   const calculateSubtotal = () => {
     return newBilling.medicines.reduce((total, medicine) => {
-      return total + (medicine.mrp * medicine.quantity);
+      return total + medicine.mrp * medicine.quantity;
     }, 0).toFixed(2);
   };
 
   const calculateGST = (subtotal, rate) => {
-    return (subtotal * rate / 100).toFixed(2);
+    return ((subtotal * rate) / 100).toFixed(2);
   };
 
   const calculateDiscountAmount = () => {
@@ -135,17 +143,17 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   const handleSubmit = () => {
     if (newBilling.patientName && newBilling.phoneNumber && newBilling.medicines.length) {
       const subtotal = calculateSubtotal();
-      const sgstAmount = (subtotal * newBilling.sgstRate / 100).toFixed(2);
-      const cgstAmount = (subtotal * newBilling.cgstRate / 100).toFixed(2);
+      const sgstAmount = (subtotal * newBilling.sgstRate) / 100;
+      const cgstAmount = (subtotal * newBilling.cgstRate) / 100;
       const total = calculateTotal();
       const discount = parseFloat(newBilling.discount || 0);
 
       const billingPayload = {
         ...newBilling,
         subtotal: subtotal,
-        cgst: cgstAmount,
-        sgst: sgstAmount,
-        discount: discount,
+        cgst: cgstAmount.toFixed(2),
+        sgst: sgstAmount.toFixed(2),
+        discount: discount.toFixed(2),
         total: total,
       };
 
@@ -288,33 +296,31 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
                     <Td>{medicine.expiryDate || 'N/A'}</Td>
                     <Td>{medicine.manufacturedBy || 'N/A'}</Td>
                     <Td>
-                      {medicine.quantityAvailable > 0 ? (
-                        <Flex alignItems="center">
-                          <IconButton
-                            icon={<FaMinus />}
-                            onClick={() => handleQuantityChange(medicine, -1)}
-                            aria-label="Decrease quantity"
-                            size="sm"
-                            mr={2}
-                          />
-                          <Input
-                            type="number"
-                            value={medicine.quantity}
-                            readOnly
-                            width="70px"
-                            textAlign="center"
-                          />
-                          <IconButton
-                            icon={<FaPlus />}
-                            onClick={() => handleQuantityChange(medicine, 1)}
-                            aria-label="Increase quantity"
-                            size="sm"
-                            ml={2}
-                          />
-                        </Flex>
-                      ) : (
-                        <Text color="red.500">Out of Stock</Text>
-                      )}
+                      <Flex alignItems="center">
+                        <IconButton
+                          icon={<FaMinus />}
+                          onClick={() => handleQuantityChange(medicine, -1)}
+                          aria-label="Decrease quantity"
+                          size="sm"
+                          mr={2}
+                          isDisabled={medicine.quantity <= 0} // Allow quantity to be zero
+                        />
+                        <Input
+                          type="number"
+                          value={medicine.quantity}
+                          readOnly
+                          width="70px"
+                          textAlign="center"
+                        />
+                        <IconButton
+                          icon={<FaPlus />}
+                          onClick={() => handleQuantityChange(medicine, 1)}
+                          aria-label="Increase quantity"
+                          size="sm"
+                          ml={2}
+                          isDisabled={medicine.quantity >= medicine.originalQuantity}
+                        />
+                      </Flex>
                     </Td>
                     <Td>{medicine.mrp.toFixed(2)}</Td>
                     <Td>{(medicine.mrp * medicine.quantity).toFixed(2)}</Td>
@@ -338,7 +344,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
               </Tr>
               <Tr fontSize="sm">
                 <Td colSpan="6" fontWeight="bold">
-                  SGST (%) (₹)
+                  SGST (%)
                   <Input
                     type="number"
                     name="sgstRate"
@@ -359,7 +365,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
               </Tr>
               <Tr fontSize="sm">
                 <Td colSpan="6" fontWeight="bold">
-                  CGST (%) (₹)
+                  CGST (%)
                   <Input
                     type="number"
                     name="cgstRate"

@@ -31,8 +31,6 @@ import { FaPlus, FaMinus } from 'react-icons/fa';
 import { getMedicines } from 'networks';
 
 const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
-  const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-
   const [billing, setBilling] = useState({
     patientName: '',
     phoneNumber: '',
@@ -40,11 +38,11 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     ageMonth: '',
     gender: '',
     medicines: [],
-    date: today,
+    date: '',
     status: 'Paid',
     discount: 0,
-    sgstRate: 9, // Adding sgstRate to state
-    cgstRate: 9, // Adding cgstRate to state
+    sgstRate: 9,
+    cgstRate: 9,
   });
 
   const [medicines, setMedicines] = useState([]);
@@ -99,10 +97,19 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   };
 
   const handleMedicineChange = (selectedOptions) => {
-    const updatedMedicines = selectedOptions.map(option => ({
-      ...option,
-      quantity: 1,
-    }));
+    const updatedMedicines = selectedOptions.map(option => {
+      const existingMedicine = billing.medicines.find(med => med.value === option.value);
+      const medicine = medicines.find(med => med.value === option.value);
+      return existingMedicine || {
+        ...option,
+        quantity: 0,  // Default quantity to 0
+        quantityAvailable: medicine ? medicine.quantityAvailable : 0,
+        mrp: medicine ? medicine.mrp : 0,
+        batchNo: medicine ? medicine.batchNo : 'N/A',
+        expiryDate: medicine ? medicine.expiryDate : 'N/A',
+        manufacturedBy: medicine ? medicine.manufacturedBy : 'N/A',
+      };
+    });
     setBilling({ ...billing, medicines: updatedMedicines });
   };
 
@@ -110,10 +117,11 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     const updatedMedicines = billing.medicines.map(med => {
       if (med.value === medicine.value) {
         const newQuantity = med.quantity + change;
+        const quantityAvailable = med.quantityAvailable - change;
         return {
           ...med,
-          quantity: Math.max(1, newQuantity),
-          quantityAvailable: med.quantityAvailable - change,
+          quantity: Math.max(0, newQuantity),
+          quantityAvailable: Math.max(0, quantityAvailable),
         };
       }
       return med;
@@ -287,33 +295,31 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                     <Td>{medicine.expiryDate || 'N/A'}</Td>
                     <Td>{medicine.manufacturedBy || 'N/A'}</Td>
                     <Td>
-                      {medicine.quantityAvailable > 0 ? (
-                        <Flex alignItems="center">
-                          <IconButton
-                            icon={<FaMinus />}
-                            onClick={() => handleQuantityChange(medicine, -1)}
-                            aria-label="Decrease quantity"
-                            size="sm"
-                            mr={2}
-                          />
-                          <Input
-                            type="number"
-                            value={medicine.quantity}
-                            readOnly
-                            width="70px"
-                            textAlign="center"
-                          />
-                          <IconButton
-                            icon={<FaPlus />}
-                            onClick={() => handleQuantityChange(medicine, 1)}
-                            aria-label="Increase quantity"
-                            size="sm"
-                            ml={2}
-                          />
-                        </Flex>
-                      ) : (
-                        <Text color="red.500">Out of Stock</Text>
-                      )}
+                      <Flex alignItems="center">
+                        <IconButton
+                          icon={<FaMinus />}
+                          onClick={() => handleQuantityChange(medicine, -1)}
+                          aria-label="Decrease quantity"
+                          size="sm"
+                          mr={2}
+                          isDisabled={medicine.quantity <= 0}
+                        />
+                        <Input
+                          type="number"
+                          value={medicine.quantity}
+                          readOnly
+                          width="70px"
+                          textAlign="center"
+                        />
+                        <IconButton
+                          icon={<FaPlus />}
+                          onClick={() => handleQuantityChange(medicine, 1)}
+                          aria-label="Increase quantity"
+                          size="sm"
+                          ml={2}
+                          isDisabled={medicine.quantityAvailable <= 0}
+                        />
+                      </Flex>
                     </Td>
                     <Td>{medicine.mrp.toFixed(2)}</Td>
                     <Td>{(medicine.mrp * medicine.quantity).toFixed(2)}</Td>
@@ -337,7 +343,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               </Tr>
               <Tr fontSize="sm">
                 <Td colSpan="6" fontWeight="bold">
-                  SGST (%) (₹)
+                  SGST (%)
                   <Input
                     type="number"
                     name="sgstRate"
@@ -358,7 +364,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               </Tr>
               <Tr fontSize="sm">
                 <Td colSpan="6" fontWeight="bold">
-                  CGST (%) (₹)
+                  CGST (%)
                   <Input
                     type="number"
                     name="cgstRate"
