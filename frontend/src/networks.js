@@ -81,3 +81,11 @@ export const updateBillingRecord = (data) => {
 export const deleteBillingRecord = (id) => {
   return axiosInstance.post('/api/billing/delete', { id });
 };
+
+export const getPatientName = (phoneNumber) => {
+  return axiosInstance.post('/api/billing/getpatientname', { phone_number: phoneNumber });
+};
+
+export const getHighBillingUsers = () => {
+  return axiosInstance.get('/api/dashboard/gethighbillingusers');
+};

@@ -176,3 +176,33 @@ class GetBillingRecords(Resource):
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
 api.add_resource(GetBillingRecords, "/api/billing/get")
+
+class GetPatientName(Resource):
+    @token_required
+    def post(account_id, self):
+        try:
+            phone_number = request.json.get('phone_number')
+            if not phone_number:
+                return make_response(jsonify({"status": "error", "message": "Phone number is required"}), 400)
+
+            connection = get_test()
+            
+            sql_select_query = """
+            SELECT patient_name FROM billing
+            WHERE tenant_id=%s AND phone_number=%s
+            """
+            df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id'], phone_number])
+            data_json = df.to_json(orient='records')
+            data = json.loads(data_json)
+            put_test(connection)
+            
+            return make_response(jsonify({"status": "success", "data": data}), 200)
+        except Exception as e:
+            logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
+            logger.error(f"Exception: {str(e)}")
+            if connection:
+                put_test(connection)
+            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+
+# Register the new resource with your API
+api.add_resource(GetPatientName, "/api/billing/getpatientname")

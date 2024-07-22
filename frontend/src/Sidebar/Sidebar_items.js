@@ -14,7 +14,6 @@ import {
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import React, { useContext, useState } from "react";
 
-import KeycloakContext from "auth/KeycloakContext";
 // chakra imports
 import { Icon } from "@chakra-ui/react";
 import {

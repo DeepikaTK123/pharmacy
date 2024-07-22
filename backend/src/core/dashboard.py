@@ -137,3 +137,47 @@ class GetLowStockMedicines(Resource):
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
 api.add_resource(GetLowStockMedicines, "/api/dashboard/getlowstockmedicines")
+
+class GetHighBillingUsers(Resource):
+    @token_required
+    def get(account_id, self):
+        try:
+            start_time = datetime.now()
+            connection = get_test()
+
+            tenant_id = account_id["tenant_id"]
+            
+            # SQL query to get users with the highest number of rows and highest bill amounts
+            sql_select_query = f"""
+                SELECT 
+                    patient_name, 
+                    phone_number,
+                    COUNT(*) AS num_bills,
+                    SUM(total) AS total_amount
+                FROM 
+                    public.billing
+                WHERE 
+                    tenant_id = '{tenant_id}'
+                GROUP BY 
+                    patient_name, phone_number
+                ORDER BY 
+                    total_amount DESC, num_bills DESC
+                LIMIT 5;  -- Adjust the limit as needed
+            """
+            df = pd.read_sql_query(sql_select_query, connection)
+            data_json = df.to_json(orient='records')
+            data = json.loads(data_json)
+            put_test(connection)
+            end_time = datetime.now()
+            time_taken = end_time - start_time
+            return make_response(jsonify({"status": "success", "data": data}), 200)
+        except Exception as e:
+            exception_type, exception_object, exception_traceback = sys.exc_info()
+            line_number = exception_traceback.tb_lineno
+            logger.error("Error in line: " + str(line_number))
+            logger.error("Exception: " + str(e))
+            if connection:
+                put_test(connection)
+            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+
+api.add_resource(GetHighBillingUsers, "/api/dashboard/gethighbillingusers")

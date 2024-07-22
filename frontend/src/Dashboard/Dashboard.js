@@ -20,13 +20,12 @@ import {
   Td,
   Card,
   CardBody,
-  Stack,
   useBreakpointValue,
 } from '@chakra-ui/react';
-import { FaPills, FaFileInvoice, FaMoneyBillWave } from 'react-icons/fa';
+import { FaPills, FaFileInvoice, FaMoneyBillWave, FaUserTie } from 'react-icons/fa';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { getDashboardCount, getRevenueChart, getLowStockMedicines } from 'networks';
+import { getDashboardCount, getRevenueChart, getLowStockMedicines, getHighBillingUsers } from 'networks';
 
 const Dashboard = () => {
   const textColor = useColorModeValue('secondaryGray.900', 'white');
@@ -36,6 +35,7 @@ const Dashboard = () => {
   const [billDates, setBillDates] = useState([]);
   const [lowStockMedicines, setLowStockMedicines] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [highBillingUsers, setHighBillingUsers] = useState([]);
   const [timeRange, setTimeRange] = useState('daily');
   const cardSize = useBreakpointValue({ base: '100%', md: '33%' });
 
@@ -49,6 +49,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchLowStockMedicines();
+  }, []);
+
+  useEffect(() => {
+    fetchHighBillingUsers();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -86,6 +90,18 @@ const Dashboard = () => {
       setLowStockMedicines(response.data.data);
     } catch (error) {
       console.error('Error fetching low stock medicines:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHighBillingUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await getHighBillingUsers();
+      setHighBillingUsers(response.data.data);
+    } catch (error) {
+      console.error('Error fetching high billing users:', error);
     } finally {
       setLoading(false);
     }
@@ -212,28 +228,59 @@ const Dashboard = () => {
                 </TabPanels>
               </Tabs>
             </Box>
-            <Box mt={8} height={400}>
+            <Box mt={8}>
               <Card bg="white" p={4} borderRadius="md" boxShadow="md" overflowY="scroll" height="400px">
                 <Text fontSize="xl" mb={4} fontWeight="bold">Medicines with Quantity Less Than 20</Text>
                 <CardBody>
-                  <Table variant="simple">
-                    <Thead>
-                      <Tr>
-                        <Th>Medicine Name</Th>
-                        <Th>Quantity</Th>
-                        <Th>MRP (₹)</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {lowStockMedicines.map((medicine) => (
-                        <Tr key={medicine.id}>
-                          <Td>{medicine.name}</Td>
-                          <Td>{medicine.quantity}</Td>
-                          <Td>{medicine.mrp}</Td>
+                  <Box maxHeight="300px" overflowY="scroll">
+                    <Table variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th>Medicine Name</Th>
+                          <Th>Quantity</Th>
+                          <Th>MRP (₹)</Th>
                         </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                      </Thead>
+                      <Tbody>
+                        {lowStockMedicines.map((medicine) => (
+                          <Tr key={medicine.id}>
+                            <Td>{medicine.name}</Td>
+                            <Td>{medicine.quantity}</Td>
+                            <Td>{medicine.mrp}</Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </CardBody>
+              </Card>
+            </Box>
+            <Box mt={8}>
+              <Card bg="white" p={4} borderRadius="md" boxShadow="md" overflowY="scroll" height="400px">
+                <Text fontSize="xl" mb={4} fontWeight="bold">High Billing Users</Text>
+                <CardBody>
+                  <Box maxHeight="300px" overflowY="scroll">
+                    <Table variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th>User Name</Th>
+                          <Th>Phone Number</Th>
+                          <Th>Number of Bills</Th>
+                          <Th>Total Bill Amount (₹)</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {highBillingUsers.map((user) => (
+                          <Tr key={user.phone_number}>
+                            <Td>{user.patient_name}</Td>
+                            <Td>{user.phone_number}</Td>
+                            <Td>{user.num_bills}</Td>
+                            <Td>{user.total_amount.toFixed(2)}</Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
                 </CardBody>
               </Card>
             </Box>

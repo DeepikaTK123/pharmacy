@@ -6,14 +6,13 @@ import {
 } from "react-router-dom";
 import { ChakraProvider} from "@chakra-ui/react";
 import React from "react";
-import theme from "./theme/theme";
 import Routes from "routes";
 import Sidebar from "Sidebar/sidebar";
 import AdminNavbar from "NavBar/NavbarAdmin";
 function App() {
   const isLoggedIn = sessionStorage.getItem("login") === "true";
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider >
       <Router>
         {isLoggedIn && (
           <>

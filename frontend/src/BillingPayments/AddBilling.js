@@ -27,7 +27,7 @@ import {
   Select as ChakraSelect,
 } from '@chakra-ui/react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
-import { getMedicines } from 'networks';
+import { getMedicines, getPatientName } from 'networks'; // Import the getPatientName function
 
 const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
@@ -80,9 +80,25 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
     fetchMedicines();
   }, [toast]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    setNewBilling({ ...newBilling, [name]: value });
+
+    // If the phone number is being changed, call the API to get the patient name
+    if (name === 'phoneNumber' && value.length >= 10) {
+      try {
+        const response = await getPatientName(value);
+        if (response.data.status === 'success' && response.data.data.length > 0) {
+          setNewBilling({ ...newBilling, [name]: value, patientName: response.data.data[0].patient_name });
+        } else {
+          setNewBilling({ ...newBilling, [name]: value, patientName: '' });
+        }
+      } catch (error) {
+        console.error('Error fetching patient name:', error);
+        setNewBilling({ ...newBilling, [name]: value, patientName: '' });
+      }
+    } else {
+      setNewBilling({ ...newBilling, [name]: value });
+    }
   };
 
   const handleMedicineChange = (selectedOptions) => {
