@@ -45,7 +45,7 @@ class Login(Resource):
                     end_time = datetime.now()
                     time_taken = end_time - start_time
                     logger.info("Time taken to Login: " + str(round(time_taken.total_seconds(), 2)))
-                    return make_response(jsonify({"status": "Login success", "message": token.decode("utf-8"), "data": data}), 200)
+                    return make_response(jsonify({"status": "Login success", "message": token, "data": data}), 200)
                 else:
                     return make_response(jsonify({"status": "failure", "message": "Invalid email or password", "data": {}}), 400)
         except Exception as e:
