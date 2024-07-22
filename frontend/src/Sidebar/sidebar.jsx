@@ -24,7 +24,6 @@ import SidebarLinks from "Sidebar/Sidebar_items";
 import logo from 'assets/img/logo3.png';
 import SidebarRoutes from "./Sidebar_routes";
 import Routes from "routes"
-import backgroudimage from "assets/img/nfts/Nft1.png"
 // FUNCTIONS
 function Sidebar(props) {
 
