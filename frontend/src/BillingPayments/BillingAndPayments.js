@@ -18,13 +18,13 @@ import {
   Link,
   Input,
   useToast,
+  Spinner,
 } from '@chakra-ui/react';
 import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
 import AddBilling from './AddBilling';
 import EditBilling from './UpdateBilling';
 import DeleteBilling from './DeleteBilling';
 import ViewBilling from './ViewBilling';
-import Loading from 'Utils/Loading/Loading';
 import { addBillingRecord, getBillingRecords, updateBillingRecord, deleteBillingRecord } from 'networks';
 
 const PharmacyBilling = () => {
@@ -216,7 +216,7 @@ const PharmacyBilling = () => {
           <Card width={{ base: '100%', md: '97%' }} borderRadius="md">
             {loading ? (
               <Flex justify="center" align="center" height="10vh">
-                <Loading />
+                <Spinner size="xl" />
               </Flex>
             ) : (
               <Box p={{ base: 3, md: 5 }}>
