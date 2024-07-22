@@ -1,7 +1,6 @@
 import React, { Suspense, useEffect } from "react";
 import { Route, Routes,Navigate } from "react-router-dom";
 import Login from "Login/login";
-import Test from "Test/test";
 import filteredRoutes from "Sidebar/Sidebar_routes";
 import Pharmacy from "Medicine/MedicineManagement";
 import Dashboard from "Dashboard/Dashboard";

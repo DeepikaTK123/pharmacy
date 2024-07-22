@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   Flex,
@@ -22,18 +22,15 @@ import PropTypes from "prop-types";
 import { IoMenuOutline } from "react-icons/io5";
 import SidebarLinks from "Sidebar/Sidebar_items";
 import logo from 'assets/img/logo3.png';
-import SidebarRoutes from "./Sidebar_routes";
 import Routes from "routes"
 // FUNCTIONS
-function Sidebar(props) {
+function Sidebar() {
 
   let variantChange = "0.2s linear";
   let shadow = useColorModeValue(
     "14px 17px 40px 4px rgba(112, 144, 176, 0.08)",
     "unset"
   );
-  // Chakra Color Mode
-  let sidebarBg = useColorModeValue("white", "navy.800");
   let sidebarMargins = "0px";
   // SIDEBAR
   const isLoggedIn = sessionStorage.getItem("login") === "true";
@@ -99,9 +96,6 @@ export function SidebarResponsive(props) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const btnRef = React.useRef();
 
-  const routes = SidebarRoutes;
-  // let isWindows = navigator.platform.startsWith("Win");
-  //  BRAND
 
   return (
     <Flex display={{ sm: "flex", xl: "none" }} alignItems='center'>

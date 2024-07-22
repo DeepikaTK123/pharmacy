@@ -14,7 +14,6 @@ import {
   Button,
   useToast,
   Box,
-  Text,
   IconButton,
   Flex,
   Table,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -42,22 +42,7 @@ const PharmacyBilling = () => {
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const toast = useToast();
 
-  useEffect(() => {
-    fetchBillingRecords();
-  }, []);
-
-  useEffect(() => {
-    const filtered = billing.filter((item) => {
-      return (
-        item.id.toString().includes(search) ||
-        item.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        item.phone_number.toLowerCase().includes(search.toLowerCase())
-      );
-    });
-    setFilteredBilling(filtered);
-  }, [search, billing]);
-
-  const fetchBillingRecords = async () => {
+  const fetchBillingRecords = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getBillingRecords();
@@ -75,7 +60,22 @@ const PharmacyBilling = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchBillingRecords();
+  }, [fetchBillingRecords]);
+
+  useEffect(() => {
+    const filtered = billing.filter((item) => {
+      return (
+        item.id.toString().includes(search) ||
+        item.patient_name.toLowerCase().includes(search.toLowerCase()) ||
+        item.phone_number.toLowerCase().includes(search.toLowerCase())
+      );
+    });
+    setFilteredBilling(filtered);
+  }, [search, billing]);
 
   const handleAddBilling = async (newBilling) => {
     try {
@@ -264,7 +264,6 @@ const PharmacyBilling = () => {
                                 month: "short",
                                 year: "numeric"
                               })}</Td>
-                          
                           <Td>
                             <Flex flexDirection={{ base: 'column', md: 'row' }}>
                               <IconButton

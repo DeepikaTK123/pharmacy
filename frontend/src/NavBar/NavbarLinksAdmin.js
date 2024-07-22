@@ -1,11 +1,8 @@
 // Chakra Imports
 import {
   Avatar,
-  Button,
   Link as ChakraLink,
   Flex,
-  Icon,
-  Image,
   Menu,
   MenuButton,
   MenuItem,
@@ -16,7 +13,6 @@ import {
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import { SearchBar } from "NavBar/searchBar/SearchBar";
 import { SidebarResponsive } from "Sidebar/sidebar";
 import routes from "routes.js";
 
@@ -33,20 +29,14 @@ export default function HeaderLinks(props) {
     }
   }, []);
 
-  // Chakra Color Mode
-  const navbarIcon = useColorModeValue("gray.400", "white");
   let menuBg = useColorModeValue("white", "navy.800");
   const textColor = useColorModeValue("secondaryGray.900", "white");
-  const textColorBrand = useColorModeValue("brand.700", "brand.400");
-  const ethColor = useColorModeValue("gray.700", "white");
   const borderColor = useColorModeValue("#E6ECFA", "rgba(135, 140, 189, 0.3)");
   const ethBg = useColorModeValue("secondaryGray.300", "navy.900");
-  const ethBox = useColorModeValue("white", "navy.800");
   const shadow = useColorModeValue(
     "14px 17px 40px 4px rgba(112, 144, 176, 0.18)",
     "14px 17px 40px 4px rgba(112, 144, 176, 0.06)"
   );
-  const borderButton = useColorModeValue("secondaryGray.500", "whiteAlpha.200");
 
   const handleLogout = async () => {
     try {

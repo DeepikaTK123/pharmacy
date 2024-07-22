@@ -25,7 +25,6 @@ import { MdAddShoppingCart, MdEdit, MdDelete } from 'react-icons/md';
 import AddMedicine from './AddMedicine';
 import EditMedicine from './EditMedicine';
 import DeleteMedicine from './DeleteMedicine';
-import Loading from 'Utils/Loading/Loading';
 import { getMedicines, addMedicine, updateMedicine, deleteMedicine } from 'networks';
 import { SearchIcon } from '@chakra-ui/icons';
 
@@ -57,7 +56,7 @@ const MedicineManagement = () => {
 
   const handleAddMedicine = async (newMedicine) => {
     try {
-      const response = await addMedicine(newMedicine);
+      await addMedicine(newMedicine);
       fetchMedicines();
       toast({
         title: "Medicine added.",

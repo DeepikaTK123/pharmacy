@@ -1,5 +1,5 @@
 // Chakra Imports
-import { Box, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Flex, Link, Text, useColorModeValue } from '@chakra-ui/react';
+import { Box, Flex, Link, Text, useColorModeValue } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect } from 'react';
 import AdminNavbarLinks from 'NavBar/NavbarLinksAdmin';
@@ -15,11 +15,10 @@ export default function AdminNavbar(props) {
 		};
 	});
 
-	const { secondary, message, brandText, childRoutes } = props;
+	const { secondary, message, brandText } = props;
 
 	// Here are all the props that may change depending on navbar's type or state.(secondary, variant, scrolled)
 	let mainText = useColorModeValue('navy.700', 'white');
-	let secondaryText = useColorModeValue('gray.700', 'white');
 	let navbarPosition = 'fixed';
 	let navbarFilter = 'none';
 	let navbarBackdrop = 'blur(20px)';

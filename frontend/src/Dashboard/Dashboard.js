@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -22,14 +22,13 @@ import {
   CardBody,
   useBreakpointValue,
 } from '@chakra-ui/react';
-import { FaPills, FaFileInvoice, FaMoneyBillWave, FaUserTie } from 'react-icons/fa';
+import { FaPills, FaFileInvoice, FaMoneyBillWave } from 'react-icons/fa';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { getDashboardCount, getRevenueChart, getLowStockMedicines, getHighBillingUsers } from 'networks';
 
 const Dashboard = () => {
   const textColor = useColorModeValue('secondaryGray.900', 'white');
-  const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState([]);
   const [billAmounts, setBillAmounts] = useState([]);
   const [billDates, setBillDates] = useState([]);
@@ -42,10 +41,19 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
+  
+  const fetchBillAmounts = useCallback(async (range) => {
+    try {
+      const response = await getRevenueChart(range);
+      setBillAmounts(response.data.data.map(item => item.amount));
+      setBillDates(response.data.data.map(item => adjustTimeZone(item.interval_date)));
+    } catch (error) {
+      console.error('Error fetching bill amounts:', error);
+    }
+  }, []);
   useEffect(() => {
     fetchBillAmounts(timeRange);
-  }, [timeRange]);
+  }, [timeRange, fetchBillAmounts]);
 
   useEffect(() => {
     fetchLowStockMedicines();
@@ -56,7 +64,6 @@ const Dashboard = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
     try {
       const response = await getDashboardCount();
       setDashboardData(response.data.data);
@@ -65,50 +72,30 @@ const Dashboard = () => {
       setTotalRevenue(totalRevenueData ? totalRevenueData.row_count : 0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchBillAmounts = async (range) => {
-    setLoading(true);
-    try {
-      const response = await getRevenueChart(range);
-      setBillAmounts(response.data.data.map(item => item.amount));
-      setBillDates(response.data.data.map(item => adjustTimeZone(item.interval_date)));
-    } catch (error) {
-      console.error('Error fetching bill amounts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const fetchLowStockMedicines = async () => {
-    setLoading(true);
     try {
       const response = await getLowStockMedicines();
       setLowStockMedicines(response.data.data);
     } catch (error) {
       console.error('Error fetching low stock medicines:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchHighBillingUsers = async () => {
-    setLoading(true);
     try {
       const response = await getHighBillingUsers();
       setHighBillingUsers(response.data.data);
     } catch (error) {
       console.error('Error fetching high billing users:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const adjustTimeZone = (date) => {
-    const offset = 5.5 * 60 * 60 * 1000; // Offset in milliseconds for -5:30 hours
     return date;
   };
 
