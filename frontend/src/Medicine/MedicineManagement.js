@@ -20,13 +20,15 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  useBreakpointValue,
+  SimpleGrid,
 } from '@chakra-ui/react';
 import { MdAddShoppingCart, MdEdit, MdDelete } from 'react-icons/md';
+import { SearchIcon } from '@chakra-ui/icons';
 import AddMedicine from './AddMedicine';
 import EditMedicine from './EditMedicine';
 import DeleteMedicine from './DeleteMedicine';
 import { getMedicines, addMedicine, updateMedicine, deleteMedicine } from 'networks';
-import { SearchIcon } from '@chakra-ui/icons';
 
 const MedicineManagement = () => {
   const [medicines, setMedicines] = useState([]);
@@ -38,6 +40,7 @@ const MedicineManagement = () => {
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const toast = useToast();
   const addMedicineModal = useDisclosure();
+  const isSmallScreen = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
     fetchMedicines();
@@ -49,7 +52,7 @@ const MedicineManagement = () => {
       setMedicines(response.data.data);
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching medicines", error);
+      console.error('Error fetching medicines', error);
       setLoading(false);
     }
   };
@@ -59,19 +62,19 @@ const MedicineManagement = () => {
       await addMedicine(newMedicine);
       fetchMedicines();
       toast({
-        title: "Medicine added.",
-        description: "The medicine has been added successfully.",
-        status: "success",
+        title: 'Medicine added.',
+        description: 'The medicine has been added successfully.',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
       addMedicineModal.onClose();
     } catch (error) {
-      console.error("Error adding medicine", error);
+      console.error('Error adding medicine', error);
       toast({
-        title: "Error adding medicine.",
-        description: "An error occurred while adding the medicine.",
-        status: "error",
+        title: 'Error adding medicine.',
+        description: 'An error occurred while adding the medicine.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -83,18 +86,18 @@ const MedicineManagement = () => {
       await updateMedicine(updatedMedicine);
       fetchMedicines();
       toast({
-        title: "Medicine updated.",
-        description: "The medicine has been updated successfully.",
-        status: "success",
+        title: 'Medicine updated.',
+        description: 'The medicine has been updated successfully.',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error updating medicine", error);
+      console.error('Error updating medicine', error);
       toast({
-        title: "Error updating medicine.",
-        description: "An error occurred while updating the medicine.",
-        status: "error",
+        title: 'Error updating medicine.',
+        description: 'An error occurred while updating the medicine.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -106,18 +109,18 @@ const MedicineManagement = () => {
       await deleteMedicine(id);
       fetchMedicines();
       toast({
-        title: "Medicine deleted.",
-        description: "The medicine has been deleted successfully.",
-        status: "success",
+        title: 'Medicine deleted.',
+        description: 'The medicine has been deleted successfully.',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error deleting medicine", error);
+      console.error('Error deleting medicine', error);
       toast({
-        title: "Error deleting medicine.",
-        description: "An error occurred while deleting the medicine.",
-        status: "error",
+        title: 'Error deleting medicine.',
+        description: 'An error occurred while deleting the medicine.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -152,7 +155,6 @@ const MedicineManagement = () => {
     }
   });
 
-  // Filtered medicines based on search term
   const filteredMedicines = sortedMedicines.filter((medicine) =>
     (medicine.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (medicine.manufacturedBy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,8 +164,12 @@ const MedicineManagement = () => {
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY={{ sm: 'scroll', lg: 'hidden' }}>
       <Flex flexDirection="column">
-        <Flex mt="45px" mb="20px" justifyContent="space-between" align={{ base: 'start', md: 'center' }}>
-          <Text color={textColor} fontSize="2xl" ms="24px" fontWeight="700">
+        <Flex mt={{ base: '20px', md: '45px' }}
+          mb="20px"
+          flexDirection={{ base: 'column', md: 'row' }}
+          justifyContent="space-between"
+          align={{ base: 'start', md: 'center' }}>
+        <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
             Medicine Management
           </Text>
           <Flex justifyContent="flex-end" gap="10px">
@@ -176,25 +182,24 @@ const MedicineManagement = () => {
               justifyContent="center"
               fontFamily="inherit"
               fontWeight="500"
-              fontSize="13px"
-              textTransform="uppercase"
-              letterSpacing="0.4px"
-              color="white"
-              backgroundColor="#3d94cf"
-              border="2px solid rgba(255, 255, 255, 0.333)"
-              borderRadius="40px"
-              padding="16px 24px 16px 28px"
+              fontSize={{ base: 'sm', md: '13px' }}
+            textTransform="uppercase"
+            letterSpacing="0.4px"
+            color="white"
+            backgroundColor="#3d94cf"
+            border="2px solid rgba(255, 255, 255, 0.333)"
+            borderRadius="40px"
+            padding={{ base: '12px 20px', md: '16px 24px' }}
               transform="translate(0px, 0px) rotate(0deg)"
               transition="0.2s"
               boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
               _hover={{
-                color: "#516d91",
-                backgroundColor: "#E5EDF5",
-                boxShadow:
-                  "-2px -1px 8px 0px #ffffff, 2px 1px 8px 0px rgb(95 157 231 / 48%)",
+                color: '#516d91',
+                backgroundColor: '#E5EDF5',
+                boxShadow: '-2px -1px 8px 0px #ffffff, 2px 1px 8px 0px rgb(95 157 231 / 48%)',
               }}
               _active={{
-                boxShadow: "none",
+                boxShadow: 'none',
               }}
             >
               Add Medicine
@@ -210,7 +215,7 @@ const MedicineManagement = () => {
               placeholder="Search by name, manufacturer, or batch no..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              backgroundColor={"white"}
+              backgroundColor="white"
             />
             <InputRightElement>
               <IconButton
@@ -223,13 +228,49 @@ const MedicineManagement = () => {
           </InputGroup>
         </Flex>
 
-        <Flex justifyContent={"center"} mt={30}>
-          <Card width={"97%"} borderRadius={40}>
-            {loading ? (
-              <Flex justify="center" align="center" height="10vh">
-                <Spinner size="xl" />
-              </Flex>
-            ) : (
+        <Flex justifyContent="center" mt={30}>
+          {loading ? (
+            <Flex justify="center" align="center" height="10vh">
+              <Spinner size="xl" />
+            </Flex>
+          ) : isSmallScreen ? (
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={5}>
+              {filteredMedicines.map((medicine) => (
+                <Box key={medicine.id} p={9} shadow="md" borderWidth="1px" borderRadius="md">
+                  <Text fontWeight="bold">ID: {medicine.id}</Text>
+                  <Text><strong>Name:</strong> {medicine.name}</Text>
+                  <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
+                  <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
+                  <Text><strong>Quantity:</strong> {medicine.quantity}</Text>
+                  <Text><strong>MRP:</strong> {medicine.mrp}</Text>
+                  <Text>
+                    <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                  <Flex mt={2} justifyContent="space-between">
+                    <IconButton
+                      icon={<MdEdit />}
+                      onClick={() => handleEditMedicine(medicine)}
+                      aria-label="Edit Medicine"
+                      colorScheme="teal"
+                      size="sm"
+                    />
+                    <IconButton
+                      icon={<MdDelete />}
+                      onClick={() => handleDeleteMedicineModal(medicine)}
+                      aria-label="Delete Medicine"
+                      colorScheme="red"
+                      size="sm"
+                    />
+                  </Flex>
+                </Box>
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Card width="97%" borderRadius={40}>
               <TableContainer p={5}>
                 <Table variant="simple">
                   <Thead>
@@ -266,15 +307,14 @@ const MedicineManagement = () => {
                         <Td>{medicine.batch_no}</Td>
                         <Td>{medicine.manufactured_by}</Td>
                         <Td>{medicine.quantity}</Td>
-                        <Td>{medicine.mrp}</Td> {/* Display MRP as number */}
+                        <Td>{medicine.mrp}</Td>
                         <Td>
-                          {new Date(medicine.expiry_date).toLocaleString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
+                          {new Date(medicine.expiry_date).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
                           })}
                         </Td>
-
                         <Td>
                           <IconButton
                             icon={<MdEdit />}
@@ -297,13 +337,17 @@ const MedicineManagement = () => {
                   </Tbody>
                 </Table>
               </TableContainer>
-            )}
-          </Card>
+            </Card>
+          )}
         </Flex>
       </Flex>
 
       {/* AddMedicine modal */}
-      <AddMedicine isOpen={addMedicineModal.isOpen} onClose={addMedicineModal.onClose} addNewMedicine={handleAddMedicine} />
+      <AddMedicine
+        isOpen={addMedicineModal.isOpen}
+        onClose={addMedicineModal.onClose}
+        addNewMedicine={handleAddMedicine}
+      />
 
       {/* EditMedicine modal */}
       {editMedicineData && (

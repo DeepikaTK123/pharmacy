@@ -19,6 +19,7 @@ import {
   Input,
   useToast,
   Spinner,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
 import AddBilling from './AddBilling';
@@ -41,6 +42,7 @@ const PharmacyBilling = () => {
   const [viewBillingData, setViewBillingData] = useState(null);
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const toast = useToast();
+  const isSmallScreen = useBreakpointValue({ base: true, md: false });
 
   const fetchBillingRecords = useCallback(async () => {
     setLoading(true);
@@ -227,76 +229,122 @@ const PharmacyBilling = () => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 <Box overflowX="auto">
-                  <Table variant="simple" size={{ base: 'sm', md: 'md' }}>
-                    <Thead>
-                      <Tr>
-                        <Th>ID</Th>
-                        <Th>Name</Th>
-                        <Th>Phone Number</Th>
-                        <Th>Medicines</Th>
-                        <Th>Subtotal</Th>
-                        <Th>CGST</Th>
-                        <Th>SGST</Th>
-                        <Th>Discount</Th>
-                        <Th>Total</Th>
-                        <Th>Date</Th>
-                        <Th>Action</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {filteredBilling.map((item) => (
-                        <Tr key={item.id}>
-                          <Td>{item.id}</Td>
-                          <Td>{item.patient_name}</Td>
-                          <Td>{item.phone_number}</Td>
-                          <Td>
-                            <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
-                              <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
-                            </Tooltip>
-                          </Td>
-                          <Td>{item.subtotal}</Td>
-                          <Td>{item.cgst}</Td>
-                          <Td>{item.sgst}</Td>
-                          <Td>{item.discount}</Td>
-                          <Td>{item.total}</Td>
-                          <Td>{new Date(item.date).toLocaleString("en-US", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric"
-                              })}</Td>
-                          <Td>
-                            <Flex flexDirection={{ base: 'column', md: 'row' }}>
-                              <IconButton
-                                icon={<MdVisibility />}
-                                onClick={() => handleViewBilling(item)}
-                                aria-label="View Pharmacy Billing"
-                                mb={{ base: 1, md: 0 }}
-                                mr={{ base: 0, md: 2 }}
-                                colorScheme="blue"
-                                size="sm"
-                              />
-                              <IconButton
-                                icon={<MdEdit />}
-                                onClick={() => handleEditBilling(item)}
-                                aria-label="Edit Pharmacy Billing"
-                                mb={{ base: 1, md: 0 }}
-                                mr={{ base: 0, md: 2 }}
-                                colorScheme="teal"
-                                size="sm"
-                              />
-                              <IconButton
-                                icon={<MdDelete />}
-                                onClick={() => handleDeleteBillingModal(item)}
-                                aria-label="Delete Pharmacy Billing"
-                                colorScheme="red"
-                                size="sm"
-                              />
-                            </Flex>
-                          </Td>
+                  {isSmallScreen ? (
+                    filteredBilling.map((item) => (
+                      <Box key={item.id} mb={4} p={4} borderWidth="1px" borderRadius="lg" overflow="hidden">
+                        <Text mb={1}><strong>ID:</strong> {item.id}</Text>
+                        <Text mb={1}><strong>Name:</strong> {item.patient_name}</Text>
+                        <Text mb={1}><strong>Phone Number:</strong> {item.phone_number}</Text>
+                        <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
+                          <Link href="#" onClick={(e) => e.preventDefault()}>Click Here for Medicines</Link>
+                        </Tooltip>
+                        <Text mb={1}><strong>Subtotal:</strong> {item.subtotal}</Text>
+                        <Text mb={1}><strong>CGST:</strong> {item.cgst}</Text>
+                        <Text mb={1}><strong>SGST:</strong> {item.sgst}</Text>
+                        <Text mb={1}><strong>Discount:</strong> {item.discount}</Text>
+                        <Text mb={1}><strong>Total:</strong> {item.total}</Text>
+                        <Text mb={1}><strong>Date:</strong> {new Date(item.date).toLocaleString("en-US", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}</Text>
+                        <Flex mt={2} justifyContent="space-between">
+                          <IconButton
+                            icon={<MdVisibility />}
+                            onClick={() => handleViewBilling(item)}
+                            aria-label="View Pharmacy Billing"
+                            colorScheme="blue"
+                            size="sm"
+                          />
+                          <IconButton
+                            icon={<MdEdit />}
+                            onClick={() => handleEditBilling(item)}
+                            aria-label="Edit Pharmacy Billing"
+                            colorScheme="teal"
+                            size="sm"
+                          />
+                          <IconButton
+                            icon={<MdDelete />}
+                            onClick={() => handleDeleteBillingModal(item)}
+                            aria-label="Delete Pharmacy Billing"
+                            colorScheme="red"
+                            size="sm"
+                          />
+                        </Flex>
+                      </Box>
+                    ))
+                  ) : (
+                    <Table variant="simple" size={{ base: 'sm', md: 'md' }}>
+                      <Thead>
+                        <Tr>
+                          <Th>ID</Th>
+                          <Th>Name</Th>
+                          <Th>Phone Number</Th>
+                          <Th>Medicines</Th>
+                          <Th>Subtotal</Th>
+                          <Th>CGST</Th>
+                          <Th>SGST</Th>
+                          <Th>Discount</Th>
+                          <Th>Total</Th>
+                          <Th>Date</Th>
+                          <Th>Action</Th>
                         </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                      </Thead>
+                      <Tbody>
+                        {filteredBilling.map((item) => (
+                          <Tr key={item.id}>
+                            <Td>{item.id}</Td>
+                            <Td>{item.patient_name}</Td>
+                            <Td>{item.phone_number}</Td>
+                            <Td>
+                              <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
+                                <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
+                              </Tooltip>
+                            </Td>
+                            <Td>{item.subtotal}</Td>
+                            <Td>{item.cgst}</Td>
+                            <Td>{item.sgst}</Td>
+                            <Td>{item.discount}</Td>
+                            <Td>{item.total}</Td>
+                            <Td>{new Date(item.date).toLocaleString("en-US", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric"
+                            })}</Td>
+                            <Td>
+                              <Flex flexDirection={{ base: 'column', md: 'row' }}>
+                                <IconButton
+                                  icon={<MdVisibility />}
+                                  onClick={() => handleViewBilling(item)}
+                                  aria-label="View Pharmacy Billing"
+                                  mb={{ base: 1, md: 0 }}
+                                  mr={{ base: 0, md: 2 }}
+                                  colorScheme="blue"
+                                  size="sm"
+                                />
+                                <IconButton
+                                  icon={<MdEdit />}
+                                  onClick={() => handleEditBilling(item)}
+                                  aria-label="Edit Pharmacy Billing"
+                                  mb={{ base: 1, md: 0 }}
+                                  mr={{ base: 0, md: 2 }}
+                                  colorScheme="teal"
+                                  size="sm"
+                                />
+                                <IconButton
+                                  icon={<MdDelete />}
+                                  onClick={() => handleDeleteBillingModal(item)}
+                                  aria-label="Delete Pharmacy Billing"
+                                  colorScheme="red"
+                                  size="sm"
+                                />
+                              </Flex>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  )}
                 </Box>
               </Box>
             )}

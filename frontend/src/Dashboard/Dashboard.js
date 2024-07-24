@@ -167,7 +167,7 @@ const Dashboard = () => {
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY={{ sm: 'scroll', lg: 'hidden' }}>
       <Flex flexDirection="column">
         <Flex mt="45px" mb="20px" justifyContent="space-between" align={{ base: 'start', md: 'center' }}>
-          <Text color={textColor} fontSize="2xl" ms="24px" fontWeight="700">Dashboard</Text>
+        <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">Dashboard</Text>
         </Flex>
         <Flex flexDirection="column">
           <Box flex="1" p={4}>

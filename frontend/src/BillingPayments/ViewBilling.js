@@ -27,6 +27,9 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
   const invoiceRef = useRef();
   const [userData, setUserData] = useState({});
   const modalSize = useBreakpointValue({ base: 'full', md: '6xl' });
+  const invoiceScale = useBreakpointValue({ base: 0.75, md: 1 });
+  const buttonSize = useBreakpointValue({ base: 'sm', md: 'md' });
+  const buttonfontSize=useBreakpointValue({ base: 11, md: 16 })
 
   useEffect(() => {
     const data = JSON.parse(sessionStorage.getItem('data'));
@@ -134,7 +137,15 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
             borderRadius="lg"
             boxShadow="md"
             className="invoice-box"
-            style={{ width: '210mm', height: '297mm', backgroundColor: 'white', boxSizing: 'border-box', margin: '0 auto' }}
+            style={{
+              width: '210mm',
+              height: '297mm',
+              backgroundColor: 'white',
+              boxSizing: 'border-box',
+              margin: '0 auto',
+              transform: `scale(${invoiceScale})`,
+              transformOrigin: 'top left'
+            }}
           >
             <Flex justify="center" mb={4} flexDirection="column" alignItems="center">
               <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
@@ -199,13 +210,13 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
           </Box>
         </ModalBody>
         <ModalFooter>
-          <Button colorScheme="blue" onClick={handleDownloadInvoice}>
+          <Button colorScheme="blue" onClick={handleDownloadInvoice} fontSize={buttonfontSize} size={buttonSize}>
             Download PDF
           </Button>
-          <Button colorScheme="green" onClick={handlePrintInvoice} ml={3}>
+          <Button colorScheme="green" onClick={handlePrintInvoice} ml={3} fontSize={buttonfontSize} size={buttonSize}>
             Print Invoice
           </Button>
-          <Button colorScheme="gray" onClick={onClose} ml={3}>
+          <Button colorScheme="gray" onClick={onClose} ml={3} fontSize={buttonfontSize} size={buttonSize}>
             Close
           </Button>
         </ModalFooter>
