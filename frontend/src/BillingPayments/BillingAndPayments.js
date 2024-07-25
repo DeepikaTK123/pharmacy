@@ -23,7 +23,7 @@ import {
 } from '@chakra-ui/react';
 import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
 import AddBilling from './AddBilling';
-import EditBilling from './UpdateBilling';
+import EditBilling from './EditBilling';
 import DeleteBilling from './DeleteBilling';
 import ViewBilling from './ViewBilling';
 import { addBillingRecord, getBillingRecords, updateBillingRecord, deleteBillingRecord } from 'networks';

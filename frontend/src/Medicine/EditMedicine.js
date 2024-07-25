@@ -23,7 +23,10 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
     manufacturedBy: '',
     mrp: '',
     name: '',
-    quantity: ''
+    quantity: '',
+    cgst: '',
+    sgst: '',
+    total: '',
   });
   const toast = useToast();
 
@@ -32,8 +35,20 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
     setMedicine({ ...medicine, [name]: value });
   };
 
+  useEffect(() => {
+    const calculateTotal = () => {
+      const mrp = parseFloat(medicine.mrp) || 0;
+      const cgst = parseFloat(medicine.cgst) || 0;
+      const sgst = parseFloat(medicine.sgst) || 0;
+      const total = mrp + (mrp * cgst / 100) + (mrp * sgst / 100);
+      setMedicine({ ...medicine, total: total.toFixed(2) });
+    };
+
+    calculateTotal();
+  }, [medicine.mrp, medicine.cgst, medicine.sgst]);
+
   const handleSubmit = () => {
-    if (medicine.name && medicine.batchNo && medicine.quantity && medicine.expiry_date && medicine.mrp && medicine.manufacturedBy) {
+    if (medicine.name && medicine.batchNo && medicine.quantity && medicine.expiry_date && medicine.mrp && medicine.cgst && medicine.sgst && medicine.manufacturedBy) {
       const updatedMedicine = {
         ...medicine,
         expiry_date: medicine.expiry_date, // Convert date back to Unix timestamp
@@ -65,6 +80,9 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
       batchNo: updateMedicineProp.batch_no,
       expiry_date: formatDate(updateMedicineProp.expiry_date),
       manufacturedBy: updateMedicineProp.manufactured_by,
+      cgst: updateMedicineProp.cgst,
+      sgst: updateMedicineProp.sgst,
+      total: (parseFloat(updateMedicineProp.mrp) + (parseFloat(updateMedicineProp.mrp) * parseFloat(updateMedicineProp.cgst) / 100) + (parseFloat(updateMedicineProp.mrp) * parseFloat(updateMedicineProp.sgst) / 100)).toFixed(2),
     });
   }, [updateMedicineProp]);
 
@@ -115,6 +133,26 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
               placeholder="Enter MRP"
             />
           </FormControl>
+          <FormControl id="cgst" mb={3}>
+            <FormLabel>CGST (%)</FormLabel>
+            <Input
+              type="number"
+              name="cgst"
+              value={medicine.cgst}
+              onChange={handleInputChange}
+              placeholder="Enter CGST percentage"
+            />
+          </FormControl>
+          <FormControl id="sgst" mb={3}>
+            <FormLabel>SGST (%)</FormLabel>
+            <Input
+              type="number"
+              name="sgst"
+              value={medicine.sgst}
+              onChange={handleInputChange}
+              placeholder="Enter SGST percentage"
+            />
+          </FormControl>
           <FormControl id="expiry_date" mb={3}>
             <FormLabel>Expiration Date</FormLabel>
             <Input
@@ -132,6 +170,15 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
               value={medicine.manufacturedBy}
               onChange={handleInputChange}
               placeholder="Enter manufacturer name"
+            />
+          </FormControl>
+          <FormControl id="total" mb={3}>
+            <FormLabel>Total</FormLabel>
+            <Input
+              type="number"
+              name="total"
+              value={medicine.total}
+              isReadOnly
             />
           </FormControl>
         </ModalBody>

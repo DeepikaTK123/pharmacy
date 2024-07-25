@@ -40,8 +40,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     date: '',
     status: 'Paid',
     discount: 0,
-    sgstRate: 9,
-    cgstRate: 9,
   });
 
   const [medicines, setMedicines] = useState([]);
@@ -59,6 +57,9 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
           manufacturedBy: med.manufactured_by,
+          cgst: med.cgst,
+          sgst: med.sgst,
+          total: med.total
         }));
         setMedicines(medicinesData);
       } catch (error) {
@@ -146,26 +147,37 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
 
   const calculateTotal = () => {
     const subtotal = parseFloat(calculateSubtotal());
-    const sgstAmount = parseFloat(calculateGST(subtotal, billing.sgstRate));
-    const cgstAmount = parseFloat(calculateGST(subtotal, billing.cgstRate));
+    const sgstRate = calculateAverageGST('sgst');
+    const cgstRate = calculateAverageGST('cgst');
+    const sgstAmount = parseFloat(calculateGST(subtotal, sgstRate));
+    const cgstAmount = parseFloat(calculateGST(subtotal, cgstRate));
     const discountAmount = parseFloat(calculateDiscountAmount());
     return (subtotal + sgstAmount + cgstAmount - discountAmount).toFixed(2);
+  };
+
+  const calculateAverageGST = (type) => {
+    const totalGST = billing.medicines.reduce((total, medicine) => {
+      return total + (type === 'sgst' ? medicine.sgst : medicine.cgst);
+    }, 0);
+    return (totalGST / billing.medicines.length) || 0;
   };
 
   const handleSubmit = () => {
     if (billing.patientName && billing.phoneNumber && billing.medicines.length) {
       const subtotal = calculateSubtotal();
-      const sgstAmount = (subtotal * billing.sgstRate / 100).toFixed(2);
-      const cgstAmount = (subtotal * billing.cgstRate / 100).toFixed(2);
+      const sgstRate = calculateAverageGST('sgst');
+      const cgstRate = calculateAverageGST('cgst');
+      const sgstAmount = (subtotal * sgstRate) / 100;
+      const cgstAmount = (subtotal * cgstRate) / 100;
       const total = calculateTotal();
       const discount = parseFloat(billing.discount || 0);
 
       const updatedBillingData = {
         ...billing,
         subtotal: subtotal,
-        sgst: sgstAmount,
-        cgst: cgstAmount,
-        discount: discount,
+        sgst: sgstAmount.toFixed(2),
+        cgst: cgstAmount.toFixed(2),
+        discount: discount.toFixed(2),
         total: total,
       };
 
@@ -198,15 +210,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               onChange={handleInputChange}
             />
           </FormControl>
-          <FormControl id="patientName" mb={3}>
-            <FormLabel>Name</FormLabel>
-            <Input
-              name="patientName"
-              value={billing.patientName}
-              onChange={handleInputChange}
-              placeholder="Enter patient name"
-            />
-          </FormControl>
           <FormControl id="phoneNumber" mb={3}>
             <FormLabel>Phone Number</FormLabel>
             <Input
@@ -214,6 +217,15 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               value={billing.phoneNumber}
               onChange={handleInputChange}
               placeholder="Enter phone number"
+            />
+          </FormControl>
+          <FormControl id="patientName" mb={3}>
+            <FormLabel>Name</FormLabel>
+            <Input
+              name="patientName"
+              value={billing.patientName}
+              onChange={handleInputChange}
+              placeholder="Enter patient name"
             />
           </FormControl>
           <FormControl id="age" mb={3}>
@@ -277,13 +289,15 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Table variant="simple">
               <Thead>
                 <Tr>
-                  <Th width="20%">Medicine</Th>
-                  <Th width="15%">Batch No</Th>
-                  <Th width="15%">Expiry Date</Th>
-                  <Th width="15%">Manufactured By</Th>
-                  <Th width="10%">Quantity</Th>
-                  <Th width="10%">MRP (₹)</Th>
-                  <Th width="15%">Total (₹)</Th>
+                  <Th width="12%">Medicine</Th>
+                  <Th width="10%">Batch No</Th>
+                  <Th width="10%">Expiry Date</Th>
+                  <Th width="10%">Manufactured By</Th>
+                  <Th width="8%">Quantity</Th>
+                  <Th width="8%">MRP (₹)</Th>
+                  <Th width="8%">CGST (%)</Th>
+                  <Th width="8%">SGST (%)</Th>
+                  <Th width="8%">Total (₹)</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -321,7 +335,9 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                       </Flex>
                     </Td>
                     <Td>{medicine.mrp.toFixed(2)}</Td>
-                    <Td>{(medicine.mrp * medicine.quantity).toFixed(2)}</Td>
+                    <Td>{medicine.cgst}</Td> {/* Display CGST */}
+                    <Td>{medicine.sgst}</Td> {/* Display SGST */}
+                    <Td>{(medicine.total * medicine.quantity).toFixed(2)}</Td>
                   </Tr>
                 ))}
               </Tbody>
@@ -330,60 +346,30 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           <Table variant="simple" mt={4}>
             <Tbody>
               <Tr>
-                <Td colSpan="7">
+                <Td colSpan="9">
                   <Divider />
                 </Td>
               </Tr>
               <Tr>
-                <Td colSpan="6" fontWeight="bold">Subtotal (₹)</Td>
+                <Td colSpan="8" fontWeight="bold">Subtotal (₹)</Td>
                 <Td fontWeight="bold" textAlign={'end'}>
                   {calculateSubtotal()}
                 </Td>
               </Tr>
               <Tr fontSize="sm">
-                <Td colSpan="6" fontWeight="bold">
-                  SGST (%)
-                  <Input
-                    type="number"
-                    name="sgstRate"
-                    value={billing.sgstRate}
-                    onChange={handleInputChange}
-                    placeholder="SGST Rate"
-                    width="70px"
-                    ml={2}
-                    border="1px"
-                    borderColor="gray.200"
-                    borderRadius="md"
-                    textAlign="center"
-                  />
-                </Td>
+                <Td colSpan="8" fontWeight="bold">Average SGST ({calculateAverageGST('sgst').toFixed(2)}%)</Td>
                 <Td textAlign={'end'} fontWeight="bold">
-                  {calculateGST(parseFloat(calculateSubtotal()), billing.sgstRate)}
+                  {calculateGST(parseFloat(calculateSubtotal()), calculateAverageGST('sgst'))}
                 </Td>
               </Tr>
               <Tr fontSize="sm">
-                <Td colSpan="6" fontWeight="bold">
-                  CGST (%)
-                  <Input
-                    type="number"
-                    name="cgstRate"
-                    value={billing.cgstRate}
-                    onChange={handleInputChange}
-                    placeholder="CGST Rate"
-                    width="70px"
-                    ml={2}
-                    border="1px"
-                    borderColor="gray.200"
-                    borderRadius="md"
-                    textAlign="center"
-                  />
-                </Td>
+                <Td colSpan="8" fontWeight="bold">Average CGST ({calculateAverageGST('cgst').toFixed(2)}%)</Td>
                 <Td textAlign={'end'} fontWeight="bold">
-                  {calculateGST(parseFloat(calculateSubtotal()), billing.cgstRate)}
+                  {calculateGST(parseFloat(calculateSubtotal()), calculateAverageGST('cgst'))}
                 </Td>
               </Tr>
               <Tr>
-                <Td colSpan="6" fontWeight="bold">
+                <Td colSpan="8" fontWeight="bold">
                   Discount (%)
                   <Input
                     type="number"
@@ -404,7 +390,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 </Td>
               </Tr>
               <Tr>
-                <Td colSpan="6" fontWeight="bold" fontSize="xl">Total (₹)</Td>
+                <Td colSpan="8" fontWeight="bold" fontSize="xl">Total (₹)</Td>
                 <Td textAlign={'end'} fontWeight="bold" bg="yellow.100" borderRadius="md" fontSize="xl">
                   {calculateTotal()} INR
                 </Td>

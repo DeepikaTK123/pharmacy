@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -17,11 +17,14 @@ import {
 const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
   const [newMedicine, setNewMedicine] = useState({
     name: '',
-    batchNo: '', // Adding Batch Number field
+    batchNo: '',
     quantity: '',
     expiryDate: '',
-    mrp: '', // Adding MRP field
-    manufacturedBy: '', // Adding Manufactured By field
+    mrp: '',
+    cgst: '',
+    sgst: '',
+    manufacturedBy: '',
+    total: '',
   });
 
   const toast = useToast();
@@ -31,16 +34,31 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
     setNewMedicine({ ...newMedicine, [name]: value });
   };
 
+  useEffect(() => {
+    const calculateTotal = () => {
+      const mrp = parseFloat(newMedicine.mrp) || 0;
+      const cgst = parseFloat(newMedicine.cgst) || 0;
+      const sgst = parseFloat(newMedicine.sgst) || 0;
+      const total = mrp + (mrp * cgst / 100) + (mrp * sgst / 100);
+      setNewMedicine({ ...newMedicine, total: total.toFixed(2) });
+    };
+
+    calculateTotal();
+  }, [newMedicine.mrp, newMedicine.cgst, newMedicine.sgst]);
+
   const handleSubmit = () => {
-    if (newMedicine.name && newMedicine.batchNo && newMedicine.quantity && newMedicine.expiryDate && newMedicine.mrp && newMedicine.manufacturedBy) {
+    if (newMedicine.name && newMedicine.batchNo && newMedicine.quantity && newMedicine.expiryDate && newMedicine.mrp && newMedicine.cgst && newMedicine.sgst && newMedicine.manufacturedBy) {
       addNewMedicine(newMedicine);
       setNewMedicine({
         name: '',
         batchNo: '',
         quantity: '',
         expiryDate: '',
-        mrp: '', // Resetting MRP field after submission
-        manufacturedBy: '', // Resetting Manufactured By field after submission
+        mrp: '',
+        cgst: '',
+        sgst: '',
+        manufacturedBy: '',
+        total: '',
       });
       onClose();
     } else {
@@ -101,6 +119,26 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
               placeholder="Enter MRP"
             />
           </FormControl>
+          <FormControl id="cgst" mb={3}>
+            <FormLabel>CGST (%)</FormLabel>
+            <Input
+              type="number"
+              name="cgst"
+              value={newMedicine.cgst}
+              onChange={handleInputChange}
+              placeholder="Enter CGST percentage"
+            />
+          </FormControl>
+          <FormControl id="sgst" mb={3}>
+            <FormLabel>SGST (%)</FormLabel>
+            <Input
+              type="number"
+              name="sgst"
+              value={newMedicine.sgst}
+              onChange={handleInputChange}
+              placeholder="Enter SGST percentage"
+            />
+          </FormControl>
           <FormControl id="expiryDate" mb={3}>
             <FormLabel>Expiration Date</FormLabel>
             <Input
@@ -118,6 +156,15 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
               value={newMedicine.manufacturedBy}
               onChange={handleInputChange}
               placeholder="Enter manufacturer name"
+            />
+          </FormControl>
+          <FormControl id="total" mb={3}>
+            <FormLabel>Total</FormLabel>
+            <Input
+              type="number"
+              name="total"
+              value={newMedicine.total}
+              isReadOnly
             />
           </FormControl>
         </ModalBody>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const ip="http://128.199.19.234"
-// const ip ='http://' + window.location.hostname;
+// const ip="http://128.199.19.234"
+const ip ='http://' + window.location.hostname;
 // const ip="http://192.168.31.117"
 const BASE_URL = ip + ":5000";
 console.log(BASE_URL)

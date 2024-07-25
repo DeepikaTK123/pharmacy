@@ -157,8 +157,8 @@ const MedicineManagement = () => {
 
   const filteredMedicines = sortedMedicines.filter((medicine) =>
     (medicine.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (medicine.manufacturedBy || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (medicine.batchNo || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (medicine.manufactured_by || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (medicine.batch_no || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -281,10 +281,10 @@ const MedicineManagement = () => {
                       <Th onClick={() => handleSort('name')} cursor="pointer">
                         Name
                       </Th>
-                      <Th onClick={() => handleSort('batchNo')} cursor="pointer">
+                      <Th onClick={() => handleSort('batch_no')} cursor="pointer">
                         Batch No
                       </Th>
-                      <Th onClick={() => handleSort('manufacturedBy')} cursor="pointer">
+                      <Th onClick={() => handleSort('manufactured_by')} cursor="pointer">
                         Manufactured By
                       </Th>
                       <Th onClick={() => handleSort('quantity')} cursor="pointer">
@@ -292,6 +292,15 @@ const MedicineManagement = () => {
                       </Th>
                       <Th onClick={() => handleSort('mrp')} cursor="pointer">
                         MRP
+                      </Th>
+                      <Th onClick={() => handleSort('cgst')} cursor="pointer">
+                        CGST
+                      </Th>
+                      <Th onClick={() => handleSort('sgst')} cursor="pointer">
+                        SGST
+                      </Th>
+                      <Th onClick={() => handleSort('total')} cursor="pointer">
+                        Total
                       </Th>
                       <Th onClick={() => handleSort('expiry_date')} cursor="pointer">
                         Expiration Date
@@ -307,7 +316,10 @@ const MedicineManagement = () => {
                         <Td>{medicine.batch_no}</Td>
                         <Td>{medicine.manufactured_by}</Td>
                         <Td>{medicine.quantity}</Td>
-                        <Td>{medicine.mrp}</Td>
+                        <Td>{medicine.mrp}</Td> {/* Display MRP as number */}
+                        <Td>{medicine.cgst}</Td> {/* Display CGST */}
+                        <Td>{medicine.sgst}</Td> {/* Display SGST */}
+                        <Td>{medicine.total}</Td> {/* Display Total */}
                         <Td>
                           {new Date(medicine.expiry_date).toLocaleString('en-US', {
                             year: 'numeric',
