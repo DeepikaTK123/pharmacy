@@ -233,6 +233,7 @@ const PharmacyBilling = () => {
                     filteredBilling.map((item) => (
                       <Box key={item.id} mb={4} p={4} borderWidth="1px" borderRadius="lg" overflow="hidden">
                         <Text mb={1}><strong>ID:</strong> {item.id}</Text>
+                        <Text mb={1}><strong>IP No.:</strong> {item.ip_no}</Text>
                         <Text mb={1}><strong>Name:</strong> {item.patient_name}</Text>
                         <Text mb={1}><strong>Phone Number:</strong> {item.phone_number}</Text>
                         <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
@@ -278,6 +279,7 @@ const PharmacyBilling = () => {
                       <Thead>
                         <Tr>
                           <Th>ID</Th>
+                          <Th>IP No.</Th>
                           <Th>Name</Th>
                           <Th>Phone Number</Th>
                           <Th>Medicines</Th>
@@ -294,6 +296,7 @@ const PharmacyBilling = () => {
                         {filteredBilling.map((item) => (
                           <Tr key={item.id}>
                             <Td>{item.id}</Td>
+                            <Td>{item.ip_no}</Td>
                             <Td>{item.patient_name}</Td>
                             <Td>{item.phone_number}</Td>
                             <Td>

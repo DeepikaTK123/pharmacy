@@ -20,17 +20,18 @@ class AddBillingRecord(Resource):
             cursor = connection.cursor()
 
             # Filter out medicines with a quantity of 0
-            medicines = [med for med in value["medicines"] if med["quantity"] > 0]
+            medicines = [med for med in value.get("medicines", []) if med.get("quantity", 0) > 0]
 
             # Insert billing record
             insert_query = """
-            INSERT INTO billing(patient_name, phone_number, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO billing(patient_name, phone_number, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender, ip_no)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """
             record_to_insert = (
-                value["patientName"], value["phoneNumber"], value["date"], value["status"], value["discount"],
-                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(medicines),
-                account_id['tenant_id'], value.get("ageYear"), value.get("ageMonth"), value.get("gender")
+                value.get("patientName", ""), value.get("phoneNumber", ""), value.get("date", ""), value.get("status", ""),
+                value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), value.get("sgst", 0.00),
+                value.get("total", 0.00), start_time, json.dumps(medicines), account_id.get('tenant_id', ""),
+                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("ipNo", "")
             )
             cursor.execute(insert_query, record_to_insert)
             billing_id = cursor.fetchone()[0]
@@ -87,17 +88,18 @@ class EditBillingRecord(Resource):
                 cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"]))
 
             # Filter out medicines with zero quantity
-            updated_medicines = [med for med in value["medicines"] if med["quantity"] > 0]
+            updated_medicines = [med for med in value.get("medicines", []) if med.get("quantity", 0) > 0]
 
             # Update the billing record
             update_query = """
-            UPDATE billing SET patient_name=%s, phone_number=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, medicines=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s
+            UPDATE billing SET patient_name=%s, phone_number=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, medicines=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s, ip_no=%s
             WHERE id=%s
             """
             record_to_update = (
-                value["patientName"], value["phoneNumber"], value["date"], value["status"], value["discount"],
-                value["subtotal"], value["cgst"], value["sgst"], value["total"], start_time, json.dumps(updated_medicines),
-                account_id['tenant_id'], value.get("ageYear"), value.get("ageMonth"), value.get("gender"), billing_id
+                value.get("patientName", ""), value.get("phoneNumber", ""), value.get("date", ""), value.get("status", ""),
+                value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), value.get("sgst", 0.00),
+                value.get("total", 0.00), start_time, json.dumps(updated_medicines), account_id.get('tenant_id', ""),
+                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("ipNo", ""), billing_id
             )
             cursor.execute(update_query, record_to_update)
 
@@ -159,7 +161,7 @@ class GetBillingRecords(Resource):
             connection = get_test()
             
             sql_select_query = """
-            SELECT id, patient_name, phone_number, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender FROM billing
+            SELECT id, patient_name, phone_number, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender, ip_no FROM billing
             WHERE tenant_id=%s
             """
             df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
@@ -174,6 +176,7 @@ class GetBillingRecords(Resource):
             if connection:
                 put_test(connection)
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+
 
 api.add_resource(GetBillingRecords, "/api/billing/get")
 

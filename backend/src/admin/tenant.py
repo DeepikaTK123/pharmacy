@@ -51,7 +51,6 @@ class GetTenants(Resource):
 
 api.add_resource(GetTenants, "/api/admin/tenant/gettenants")
 
-
 class TenantRegister(Resource):
     def post(self):
         start_time = datetime.now()
@@ -63,12 +62,12 @@ class TenantRegister(Resource):
             connection = get_test()
             
             with connection.cursor() as cursor:
-                insert_query = """INSERT INTO tenants(username, email, phonenumber, password, company_name, address, pincode, gst, registration_date, tenant_id)
-                                  VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                insert_query = """INSERT INTO tenants(username, email, phonenumber, password, company_name, address, pincode, gst, druglicense_no, registration_date, tenant_id)
+                                  VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
                 record_to_insert = (
                     value["username"], value["email"], value["phonenumber"], value["password"], 
                     value["company_name"], value["address"], value["pincode"], value["gst"], 
-                    start_time, value["tenant_id"]
+                    value["druglicense_no"], start_time, value["tenant_id"]
                 )
                 cursor.execute(insert_query, record_to_insert)
                 connection.commit()
@@ -84,4 +83,3 @@ class TenantRegister(Resource):
             return make_response(jsonify({"status": "error", "message": "Internal server error", "data": {}}), 500)
 
 api.add_resource(TenantRegister, "/api/admin/tenant/registertenant")
-

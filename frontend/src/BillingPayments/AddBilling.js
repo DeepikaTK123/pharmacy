@@ -34,9 +34,11 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
 
   const [newBilling, setNewBilling] = useState({
     patientName: '',
+    ipNo: '',
     phoneNumber: '',
-    ageYear: '',
-    ageMonth: '',
+    dob: '', // Date of Birth
+    ageYear: null,
+    ageMonth: null,
     gender: '',
     medicines: [],
     date: today,
@@ -81,6 +83,24 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
     fetchMedicines();
   }, [toast]);
 
+  const calculateAge = (dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    // Set age to 0 if birth year is the same as current year
+    if (age < 0 || (age === 0 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
+      age = 0;
+    }
+
+    // Adjust the age in months if necessary
+    const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
+
+    return { years: age, months };
+  };
+
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
 
@@ -89,16 +109,19 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       try {
         const response = await getPatientName(value);
         if (response.data.status === 'success' && response.data.data.length > 0) {
-          setNewBilling({ ...newBilling, [name]: value, patientName: response.data.data[0].patient_name });
+          setNewBilling(prev => ({ ...prev, [name]: value, patientName: response.data.data[0].patient_name }));
         } else {
-          setNewBilling({ ...newBilling, [name]: value, patientName: '' });
+          setNewBilling(prev => ({ ...prev, [name]: value, patientName: '' }));
         }
       } catch (error) {
         console.error('Error fetching patient name:', error);
-        setNewBilling({ ...newBilling, [name]: value, patientName: '' });
+        setNewBilling(prev => ({ ...prev, [name]: value, patientName: '' }));
       }
+    } else if (name === 'dob') {
+      const { years, months } = calculateAge(value);
+      setNewBilling(prev => ({ ...prev, [name]: value, ageYear: years || 0, ageMonth: months || 0 }));
     } else {
-      setNewBilling({ ...newBilling, [name]: value });
+      setNewBilling(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -113,7 +136,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       };
     });
 
-    setNewBilling({ ...newBilling, medicines: updatedMedicines });
+    setNewBilling(prev => ({ ...prev, medicines: updatedMedicines }));
   };
 
   const handleQuantityChange = (medicine, change) => {
@@ -130,7 +153,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       return med;
     });
 
-    setNewBilling({ ...newBilling, medicines: updatedMedicines });
+    setNewBilling(prev => ({ ...prev, medicines: updatedMedicines }));
   };
 
   const calculateSubtotal = () => {
@@ -179,8 +202,8 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       const billingPayload = {
         ...newBilling,
         subtotal: subtotal,
-        cgst: cgstAmount.toFixed(2),
-        sgst: sgstAmount.toFixed(2),
+        cgst: sgstAmount.toFixed(2),
+        sgst: cgstAmount.toFixed(2),
         discount: discount.toFixed(2),
         total: total,
       };
@@ -189,9 +212,11 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
 
       setNewBilling({
         patientName: '',
+        ipNo: '',
         phoneNumber: '',
-        ageYear: '',
-        ageMonth: '',
+        dob: '', // Reset date of birth
+        ageYear: 0,
+        ageMonth: 0,
         gender: '',
         medicines: [],
         date: today,
@@ -244,6 +269,24 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
               placeholder="Enter patient name"
             />
           </FormControl>
+          <FormControl id="ipNo" mb={3}>
+            <FormLabel>IP No.</FormLabel>
+            <Input
+              name="ipNo"
+              value={newBilling.ipNo}
+              onChange={handleInputChange}
+              placeholder="Enter IP number"
+            />
+          </FormControl>
+          <FormControl id="dob" mb={3}>
+            <FormLabel>Date of Birth</FormLabel>
+            <Input
+              type="date"
+              name="dob"
+              value={newBilling.dob}
+              onChange={handleInputChange}
+            />
+          </FormControl>
           <FormControl id="age" mb={3}>
             <FormLabel>Age</FormLabel>
             <HStack>
@@ -251,8 +294,8 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
                 <FormLabel fontSize="sm">Year</FormLabel>
                 <Input
                   name="ageYear"
-                  value={newBilling.ageYear}
-                  onChange={handleInputChange}
+                  value={newBilling.ageYear || ''}
+                  readOnly
                   placeholder="Years"
                   size="sm"
                 />
@@ -261,8 +304,8 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
                 <FormLabel fontSize="sm">Month</FormLabel>
                 <Input
                   name="ageMonth"
-                  value={newBilling.ageMonth}
-                  onChange={handleInputChange}
+                  value={newBilling.ageMonth || ''}
+                  readOnly
                   placeholder="Months"
                   size="sm"
                 />

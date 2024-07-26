@@ -29,7 +29,7 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
   const modalSize = useBreakpointValue({ base: 'full', md: '6xl' });
   const invoiceScale = useBreakpointValue({ base: 0.75, md: 1 });
   const buttonSize = useBreakpointValue({ base: 'sm', md: 'md' });
-  const buttonfontSize=useBreakpointValue({ base: 11, md: 16 })
+  const buttonfontSize = useBreakpointValue({ base: 11, md: 16 });
 
   useEffect(() => {
     const data = JSON.parse(sessionStorage.getItem('data'));
@@ -150,17 +150,25 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
             <Flex justify="center" mb={4} flexDirection="column" alignItems="center">
               <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
               <Text>{userData.address} - {userData.pincode}</Text>
-              <Text><strong>GST:</strong> {userData.gst}</Text>
+              <Flex justify="space-between" width="100%">
+                <Text><strong>GST:</strong> {userData.gst}</Text>
+                <Text><strong>Drug License:</strong> {userData.druglicense_no}</Text>
+              </Flex>
             </Flex>
             <Divider my={4} />
             <Flex justify="space-between" mb={4}>
               <Box textAlign="left">
                 <Text fontSize={20}><strong>{billingData.patient_name}</strong></Text>
-                <Text>{`${billingData.age_year} years, ${billingData.age_month} months`}</Text>
+                {billingData.age_year && billingData.age_month && (
+                  <Text>{`${billingData.age_year} years, ${billingData.age_month} months`}</Text>
+                )}
                 <Text>{billingData.gender}</Text>
               </Box>
               <Box textAlign="right">
                 <Text><strong>Invoice ID:</strong> {billingData.id}</Text>
+                {billingData.ip_no && (
+                  <Text><strong>IP No.:</strong> {billingData.ip_no}</Text>
+                )}
                 <Text><strong>Date:</strong> {new Date(billingData.date).toLocaleString("en-US", {
                   day: "numeric",
                   month: "short",

@@ -21,15 +21,17 @@ class Login(Resource):
             connection = get_test()
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT tenant_id, username, email, company_name, phonenumber, address, pincode, gst 
+                    SELECT tenant_id, username, email, company_name, phonenumber, address, pincode, gst, druglicense_no 
                     FROM tenants 
                     WHERE email=%s AND password=%s
                 """, (value['email'], value['password']))
                 x = cursor.fetchone()
                 put_test(connection)
                 if x:
-                    token = jwt.encode({"public_id": {"tenant_id": x[0], "user_id": ""}, "exp": datetime.now() + timedelta(days=15)},
-                                        current_app.config["SECRET_KEY"], "HS256")
+                    token = jwt.encode(
+                        {"public_id": {"tenant_id": x[0], "user_id": ""}, "exp": datetime.now() + timedelta(days=15)},
+                        current_app.config["SECRET_KEY"], "HS256"
+                    )
                     # Convert tuple to dictionary
                     data = {
                         "tenant_id": x[0],
@@ -39,13 +41,14 @@ class Login(Resource):
                         "phonenumber": x[4],
                         "address": x[5],
                         "pincode": x[6],
-                        "gst": x[7]
+                        "gst": x[7],
+                        "druglicense_no": x[8]  # Add druglicense_no here
                     }
                     
                     end_time = datetime.now()
                     time_taken = end_time - start_time
                     logger.info("Time taken to Login: " + str(round(time_taken.total_seconds(), 2)))
-                    return make_response(jsonify({"status": "Login success", "message": token.decode('utf-8'), "data": data}), 200)
+                    return make_response(jsonify({"status": "Login success", "message": token, "data": data}), 200)
                 else:
                     return make_response(jsonify({"status": "failure", "message": "Invalid email or password", "data": {}}), 400)
         except Exception as e:
