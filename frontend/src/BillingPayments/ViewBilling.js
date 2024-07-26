@@ -152,14 +152,23 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
               <Text>{userData.address} - {userData.pincode}</Text>
               <Flex justify="space-between" width="100%">
                 <Text><strong>GST:</strong> {userData.gst}</Text>
-                <Text><strong>Drug License:</strong> {userData.druglicense_no}</Text>
+                {userData.druglicense_no && (
+                  <Text>
+                    {userData.druglicense_no.split(',').map((part, index) => (
+                      <React.Fragment key={index}>
+                        {index > 0 && <br />}
+                        {part.trim()}
+                      </React.Fragment>
+                    ))}
+                  </Text>
+                )}
               </Flex>
             </Flex>
             <Divider my={4} />
             <Flex justify="space-between" mb={4}>
               <Box textAlign="left">
                 <Text fontSize={20}><strong>{billingData.patient_name}</strong></Text>
-                {billingData.age_year && billingData.age_month && (
+                {(billingData.age_year !== null && billingData.age_year !== undefined) && (billingData.age_month !== null && billingData.age_month !== undefined) && (
                   <Text>{`${billingData.age_year} years, ${billingData.age_month} months`}</Text>
                 )}
                 <Text>{billingData.gender}</Text>

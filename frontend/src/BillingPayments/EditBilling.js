@@ -33,6 +33,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   const [billing, setBilling] = useState({
     patientName: '',
     phoneNumber: '',
+    dob: '', // Added DOB field
     ageYear: null,
     ageMonth: null,
     gender: null,
@@ -40,7 +41,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     date: '',
     status: 'Paid',
     discount: 0,
-    ipNo: '',  // Added IP No. field
+    ipNo: '', // Added IP No. field
   });
 
   const [medicines, setMedicines] = useState([]);
@@ -83,19 +84,42 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       ...updateBillingProp,
       patientName: updateBillingProp.patientName || updateBillingProp.patient_name || '',
       phoneNumber: updateBillingProp.phoneNumber || updateBillingProp.phone_number || '',
-      date: new Date(updateBillingProp.date).toISOString().split('T')[0],  // Convert Unix timestamp to YYYY-MM-DD format
+      dob: updateBillingProp.dob || '',
+      date: new Date(updateBillingProp.date).toISOString().split('T')[0], // Convert Unix timestamp to YYYY-MM-DD format
       ageYear: updateBillingProp.age_year || null,
       ageMonth: updateBillingProp.age_month || null,
       gender: updateBillingProp.gender || '',
       sgstRate: updateBillingProp.sgst || 9,
       cgstRate: updateBillingProp.cgst || 9,
-      ipNo: updateBillingProp.ipNo || '',  // Initialize IP No.
+      ipNo: updateBillingProp.ipNo || '', // Initialize IP No.
     });
   }, [updateBillingProp]);
 
+  const calculateAge = (dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age--;
+    }
+
+    const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
+    
+    return { years: age, months };
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBilling({ ...billing, [name]: value });
+
+    if (name === 'dob') {
+      const { years, months } = calculateAge(value);
+      setBilling({ ...billing, [name]: value, ageYear: years, ageMonth: months });
+    } else {
+      setBilling({ ...billing, [name]: value });
+    }
   };
 
   const handleMedicineChange = (selectedOptions) => {
@@ -104,7 +128,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       const medicine = medicines.find(med => med.value === option.value);
       return existingMedicine || {
         ...option,
-        quantity: 0,  // Default quantity to 0
+        quantity: 0, // Default quantity to 0
         quantityAvailable: medicine ? medicine.quantityAvailable : 0,
         mrp: medicine ? medicine.mrp : 0,
         batchNo: medicine ? medicine.batchNo : 'N/A',
@@ -239,6 +263,15 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               placeholder="Enter IP No."
             />
           </FormControl>
+          <FormControl id="dob" mb={3}> {/* Added DOB field */}
+            <FormLabel>Date of Birth</FormLabel>
+            <Input
+              type="date"
+              name="dob"
+              value={billing.dob}
+              onChange={handleInputChange}
+            />
+          </FormControl>
           <FormControl id="age" mb={3}>
             <FormLabel>Age</FormLabel>
             <HStack>
@@ -246,8 +279,8 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 <FormLabel fontSize="sm">Year</FormLabel>
                 <Input
                   name="ageYear"
-                  value={billing.ageYear}
-                  onChange={handleInputChange}
+                  value={billing.ageYear || ''}
+                  readOnly
                   placeholder="Years"
                   size="sm"
                 />
@@ -256,8 +289,8 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 <FormLabel fontSize="sm">Month</FormLabel>
                 <Input
                   name="ageMonth"
-                  value={billing.ageMonth}
-                  onChange={handleInputChange}
+                  value={billing.ageMonth || ''}
+                  readOnly
                   placeholder="Months"
                   size="sm"
                 />
