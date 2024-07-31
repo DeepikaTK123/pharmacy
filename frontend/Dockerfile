@@ -12,7 +12,7 @@ COPY ssl/gd_bundle-g2-g1.crt /etc/nginx/ssl/gd_bundle-g2-g1.crt
 COPY ssl/e822a21acfa412f0.pem /etc/nginx/ssl/e822a21acfa412f0.pem
 
 # Copy the build folder to the Nginx HTML directory
-COPY --from=build /usr/local/app/build /usr/share/nginx/html
+COPY build /usr/share/nginx/html
 
 # Expose port 80 and 443 to the outside world
 EXPOSE 80
