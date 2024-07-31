@@ -158,19 +158,19 @@ const MedicineManagement = () => {
   );
 
   // Calculate counts for quantity conditions
-  const quantityLessThanTwentyCount = medicines.filter((medicine) => medicine.quantity < 20).length;
+  const quantityLessThanTwentyCount = medicines.filter((medicine) => medicine.quantity > 0 && medicine.quantity < 20).length;
   const quantityZeroCount = medicines.filter((medicine) => medicine.quantity === 0).length;
 
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
-    <Flex flexDirection="column">
-      <Flex
-        mt={{ base: '20px', md: '45px' }}
-        mb="20px"
-        flexDirection={{ base: 'column', md: 'row' }}
-        justifyContent="space-between"
-        align={{ base: 'start', md: 'center' }}
-      >
+      <Flex flexDirection="column">
+        <Flex
+          mt={{ base: '20px', md: '45px' }}
+          mb="20px"
+          flexDirection={{ base: 'column', md: 'row' }}
+          justifyContent="space-between"
+          align={{ base: 'start', md: 'center' }}
+        >
           <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
             Medicine Management
           </Text>
@@ -211,180 +211,177 @@ const MedicineManagement = () => {
 
         {/* Cards for quantity counts */}
         <Flex justifyContent="center" mb="10px" wrap="nowrap">
-  <Card 
-    backgroundColor="orange.100" 
-    p={2} 
-    borderRadius="md" 
-    shadow="md" 
-    textAlign="center" 
-    w={{ base: '30%', md: '15%' }} 
-    m={1}
-  >
-    <Text fontSize="xs" color="gray.600">Items with quantity less than 20</Text>
-    <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTwentyCount}</Text>
-    
-  </Card>
-  <Card 
-    backgroundColor="red.100" 
-    p={2} 
-    borderRadius="md" 
-    shadow="md" 
-    textAlign="center" 
-    w={{ base: '30%', md: '15%' }} 
-    m={1}
-  >
-  
-    
-    <Text fontSize="xs" color="gray.600">Finished Items</Text>
-    <Text fontSize="md" fontWeight="bold" color="red.600">{quantityZeroCount}</Text>
-  </Card>
-</Flex>
+          <Card
+            backgroundColor="orange.100"
+            p={2}
+            borderRadius="md"
+            shadow="md"
+            textAlign="center"
+            w={{ base: '30%', md: '15%' }}
+            m={1}
+          >
+            <Text fontSize="xs" color="gray.600">Items with quantity less than 20</Text>
+            <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTwentyCount}</Text>
+          </Card>
+          <Card
+            backgroundColor="red.100"
+            p={2}
+            borderRadius="md"
+            shadow="md"
+            textAlign="center"
+            w={{ base: '30%', md: '15%' }}
+            m={1}
+          >
+            <Text fontSize="xs" color="gray.600">Finished Items</Text>
+            <Text fontSize="md" fontWeight="bold" color="red.600">{quantityZeroCount}</Text>
+          </Card>
+        </Flex>
 
-              <Card p={2}>
-        {/* Search Bar */}
-        <Flex justify="flex-end" mt={4} mr={4}>
-          <InputGroup>
-            <Input
-              type="text"
-              placeholder="Search by name, manufacturer, or batch no..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              backgroundColor="white"
-              size="md"
-            />
-            <InputRightElement>
-              <IconButton
-                aria-label="Search"
-                icon={<SearchIcon />}
-                onClick={() => setSearchTerm('')}
-                variant="ghost"
+        <Card p={2}>
+          {/* Search Bar */}
+          <Flex justify="flex-end" mt={4} mr={4}>
+            <InputGroup>
+              <Input
+                type="text"
+                placeholder="Search by name, manufacturer, or batch no..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                backgroundColor="white"
                 size="md"
               />
-            </InputRightElement>
-          </InputGroup>
-        </Flex>
+              <InputRightElement>
+                <IconButton
+                  aria-label="Search"
+                  icon={<SearchIcon />}
+                  onClick={() => setSearchTerm('')}
+                  variant="ghost"
+                  size="md"
+                />
+              </InputRightElement>
+            </InputGroup>
+          </Flex>
 
-        <Flex justifyContent="center" mt={20}>
-          {loading ? (
-            <Flex justify="center" align="center" height="10vh">
-              <Spinner size="lg" />
-            </Flex>
-          ) : isSmallScreen ? (
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={5}>
-              {filteredMedicines.map((medicine) => (
-                <Box key={medicine.id} p={3} shadow="md" borderWidth="1px" borderRadius="md">
-                  <Text fontWeight="bold">ID: {medicine.id}</Text>
-                  <Text><strong>Name:</strong> {medicine.name}</Text>
-                  <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
-                  <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
-                  <Text><strong>Quantity:</strong> {medicine.quantity}</Text>
-                  <Text><strong>MRP:</strong> {medicine.mrp}</Text>
-                  <Text><strong>Rate:</strong> {medicine.rate}</Text>
-                  <Text>
-                    <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}
-                  </Text>
-                  <Flex mt={2} justifyContent="space-between">
-                    <IconButton
-                      icon={<MdEdit />}
-                      onClick={() => handleEditMedicine(medicine)}
-                      aria-label="Edit Medicine"
-                      colorScheme="teal"
-                      size="sm"
-                    />
-                    <IconButton
-                      icon={<MdDelete />}
-                      onClick={() => handleDeleteMedicineModal(medicine)}
-                      aria-label="Delete Medicine"
-                      colorScheme="red"
-                      size="sm"
-                    />
-                  </Flex>
-                </Box>
-              ))}
-            </SimpleGrid>
-          ) : (
-            <Card width="95%" borderRadius={20}>
-              <TableContainer >
-                <Table variant="simple" size="md">
-                  <Thead>
-                    <Tr>
-                      <Th onClick={() => handleSort('id')} cursor="pointer">
-                        ID
-                      </Th>
-                      <Th onClick={() => handleSort('name')} cursor="pointer">
-                        Name
-                      </Th>
-                      <Th onClick={() => handleSort('batch_no')} cursor="pointer">
-                        Batch No
-                      </Th>
-                      <Th onClick={() => handleSort('manufactured_by')} cursor="pointer">
-                        Manufactured By
-                      </Th>
-                      <Th onClick={() => handleSort('quantity')} cursor="pointer">
-                        Quantity
-                      </Th>
-                      <Th onClick={() => handleSort('rate')} cursor="pointer">
-                        Rate
-                      </Th>
-                      <Th onClick={() => handleSort('mrp')} cursor="pointer">
-                        MRP
-                      </Th>
-                      <Th onClick={() => handleSort('cgst')} cursor="pointer">
-                        CGST
-                      </Th>
-                      <Th onClick={() => handleSort('sgst')} cursor="pointer">
-                        SGST
-                      </Th>
-                      <Th onClick={() => handleSort('total')} cursor="pointer">
-                        Total
-                      </Th>
-                      <Th onClick={() => handleSort('expiry_date')} cursor="pointer">
-                        Expiration Date
-                      </Th>
-                      <Th>Action</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {filteredMedicines.map((medicine) => (
-                      <Tr key={medicine.id} backgroundColor={medicine.quantity < 20 ? 'orange.100' : medicine.quantity === 0 ? 'red.100' : 'transparent'}>
-                        <Td>{medicine.id}</Td>
-                        <Td>{medicine.name}</Td>
-                        <Td>{medicine.batch_no}</Td>
-                        <Td>{medicine.manufactured_by}</Td>
-                        <Td>{medicine.quantity}</Td>
-                        <Td>{medicine.rate}</Td>
-                        <Td>{medicine.mrp}</Td>
-                        <Td>{medicine.cgst}</Td>
-                        <Td>{medicine.sgst}</Td>
-                        <Td>{medicine.total}</Td>
-                        <Td>
-                          {new Date(medicine.expiry_date).toLocaleDateString()}
-                        </Td>
-                        <Td>
-                          <IconButton
-                            icon={<MdEdit />}
-                            onClick={() => handleEditMedicine(medicine)}
-                            aria-label="Edit Medicine"
-                            mr={2}
-                            colorScheme="teal"
-                            size="sm"
-                          />
-                          <IconButton
-                            icon={<MdDelete />}
-                            onClick={() => handleDeleteMedicineModal(medicine)}
-                            aria-label="Delete Medicine"
-                            colorScheme="red"
-                            size="sm"
-                          />
-                        </Td>
+          <Flex justifyContent="center" mt={20}>
+            {loading ? (
+              <Flex justify="center" align="center" height="10vh">
+                <Spinner size="lg" />
+              </Flex>
+            ) : isSmallScreen ? (
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={5}>
+                {filteredMedicines.map((medicine) => (
+                  <Box key={medicine.id} p={3} shadow="md" borderWidth="1px" borderRadius="md">
+                    <Text fontWeight="bold">ID: {medicine.id}</Text>
+                    <Text><strong>Name:</strong> {medicine.name}</Text>
+                    <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
+                    <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
+                    <Text><strong>Quantity:</strong> {medicine.quantity}</Text>
+                    <Text><strong>MRP:</strong> {medicine.mrp}</Text>
+                    <Text><strong>Rate:</strong> {medicine.rate}</Text>
+                    <Text>
+                      <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}
+                    </Text>
+                    <Flex mt={2} justifyContent="space-between">
+                      <IconButton
+                        icon={<MdEdit />}
+                        onClick={() => handleEditMedicine(medicine)}
+                        aria-label="Edit Medicine"
+                        colorScheme="teal"
+                        size="sm"
+                      />
+                      <IconButton
+                        icon={<MdDelete />}
+                        onClick={() => handleDeleteMedicineModal(medicine)}
+                        aria-label="Delete Medicine"
+                        colorScheme="red"
+                        size="sm"
+                      />
+                    </Flex>
+                  </Box>
+                ))}
+              </SimpleGrid>
+            ) : (
+              <Card width="95%" borderRadius={20}>
+                <TableContainer>
+                  <Table variant="simple" size="md">
+                    <Thead>
+                      <Tr>
+                        <Th onClick={() => handleSort('id')} cursor="pointer">
+                          ID
+                        </Th>
+                        <Th onClick={() => handleSort('name')} cursor="pointer">
+                          Name
+                        </Th>
+                        <Th onClick={() => handleSort('batch_no')} cursor="pointer">
+                          Batch No
+                        </Th>
+                        <Th onClick={() => handleSort('manufactured_by')} cursor="pointer">
+                          Manufactured By
+                        </Th>
+                        <Th onClick={() => handleSort('quantity')} cursor="pointer">
+                          Quantity
+                        </Th>
+                        <Th onClick={() => handleSort('rate')} cursor="pointer">
+                          Rate
+                        </Th>
+                        <Th onClick={() => handleSort('mrp')} cursor="pointer">
+                          MRP
+                        </Th>
+                        <Th onClick={() => handleSort('cgst')} cursor="pointer">
+                          CGST
+                        </Th>
+                        <Th onClick={() => handleSort('sgst')} cursor="pointer">
+                          SGST
+                        </Th>
+                        <Th onClick={() => handleSort('total')} cursor="pointer">
+                          Total
+                        </Th>
+                        <Th onClick={() => handleSort('expiry_date')} cursor="pointer">
+                          Expiration Date
+                        </Th>
+                        <Th>Action</Th>
                       </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-             </Card>
-          )}
-        </Flex>
+                    </Thead>
+                    <Tbody>
+                      {filteredMedicines.map((medicine) => (
+                        <Tr key={medicine.id} backgroundColor={medicine.quantity === 0 ? 'red.100' : medicine.quantity < 20 ? 'orange.100' : 'transparent'}>
+                          <Td>{medicine.id}</Td>
+                          <Td>{medicine.name}</Td>
+                          <Td>{medicine.batch_no}</Td>
+                          <Td>{medicine.manufactured_by}</Td>
+                          <Td>{medicine.quantity}</Td>
+                          <Td>{medicine.rate}</Td>
+                          <Td>{medicine.mrp}</Td>
+                          <Td>{medicine.cgst}</Td>
+                          <Td>{medicine.sgst}</Td>
+                          <Td>{medicine.total}</Td>
+                          <Td>
+                            {new Date(medicine.expiry_date).toLocaleDateString()}
+                          </Td>
+                          <Td>
+                            <IconButton
+                              icon={<MdEdit />}
+                              onClick={() => handleEditMedicine(medicine)}
+                              aria-label="Edit Medicine"
+                              mr={2}
+                              colorScheme="teal"
+                              size="sm"
+                            />
+                            <IconButton
+                              icon={<MdDelete />}
+                              onClick={() => handleDeleteMedicineModal(medicine)}
+                              aria-label="Delete Medicine"
+                              colorScheme="red"
+                              size="sm"
+                            />
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </Card>
+            )}
+          </Flex>
         </Card>
       </Flex>
 
