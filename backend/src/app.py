@@ -35,7 +35,7 @@ def create_app(config):
     from src.core.users import users
     from src.core.dashboard import dashboard
     from src.core.medicines import medicines
-    from src.core.suppliers import suppliers
+    # from src.core.suppliers import suppliers
     from src.core.billing_and_payments import billing_bp
     from src.admin.tenant import tenant
 
@@ -44,7 +44,7 @@ def create_app(config):
     app.register_blueprint(medicines)
     app.register_blueprint(billing_bp)
     app.register_blueprint(tenant)
-    app.register_blueprint(suppliers)
+    # app.register_blueprint(suppliers)
 
 
     return app
