@@ -30,7 +30,20 @@ class AddMedicine(Resource):
             connection = get_test()
             value = request.json
 
+            # Check for duplicate medicine
+            check_query = """
+            SELECT COUNT(*) FROM medicines
+            WHERE name = %s AND batch_no = %s AND manufactured_by = %s AND tenant_id = %s
+            """
+            check_values = (value["name"], value["batchNo"], value["manufacturedBy"], account_id['tenant_id'])
 
+            with connection.cursor() as cursor:
+                cursor.execute(check_query, check_values)
+                result = cursor.fetchone()
+                if result[0] > 0:
+                    return make_response(jsonify({"status": "error", "message": "Medicine with same batch and manufacturer already exists"}), 409)
+
+            # Insert new medicine
             insert_query = """
             INSERT INTO medicines(name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit, tenant_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -43,15 +56,16 @@ class AddMedicine(Resource):
             with connection.cursor() as cursor:
                 cursor.execute(insert_query, record_to_insert)
                 connection.commit()
-            
+
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time
-            
+
             return make_response(jsonify({"status": "success", "message": "Added New Medicine", "data": {}}), 200)
 
         except Exception as e:
             return handle_database_error(e, connection)
+
 
 # Resource for editing an existing medicine
 class EditMedicine(Resource):

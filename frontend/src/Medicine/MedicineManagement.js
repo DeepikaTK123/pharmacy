@@ -60,7 +60,7 @@ const MedicineManagement = () => {
 
   const handleAddMedicine = async (newMedicine) => {
     try {
-      await addMedicine(newMedicine);
+      const response = await addMedicine(newMedicine);
       fetchMedicines();
       toast({
         title: 'Medicine added.',
@@ -74,7 +74,7 @@ const MedicineManagement = () => {
       console.error('Error adding medicine', error);
       toast({
         title: 'Error adding medicine.',
-        description: 'An error occurred while adding the medicine.',
+        description: error.response.data.message,
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -157,9 +157,14 @@ const MedicineManagement = () => {
     (medicine.batch_no || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate counts for quantity conditions
-  const quantityLessThanTwentyCount = medicines.filter((medicine) => medicine.quantity > 0 && medicine.quantity < 20).length;
+  // Calculate counts for quantity conditions and expiry conditions
+  const quantityLessThanTenCount = medicines.filter((medicine) => medicine.quantity > 0 && medicine.quantity < 10).length;
   const quantityZeroCount = medicines.filter((medicine) => medicine.quantity === 0).length;
+  const currentDate = new Date();
+  const threeMonthsLater = new Date();
+  threeMonthsLater.setMonth(currentDate.getMonth() + 3);
+  const expiringSoonCount = medicines.filter((medicine) => new Date(medicine.expiry_date) <= threeMonthsLater && new Date(medicine.expiry_date) > currentDate).length;
+  const expiredCount = medicines.filter((medicine) => new Date(medicine.expiry_date) <= currentDate).length;
 
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
@@ -209,10 +214,11 @@ const MedicineManagement = () => {
           </Flex>
         </Flex>
 
-        {/* Cards for quantity counts */}
+        {/* Cards for quantity and expiry counts */}
         <Flex justifyContent="center" mb="10px" wrap="nowrap">
           <Card
-            backgroundColor="orange.100"
+            backgroundColor="yellow"
+            color
             p={2}
             borderRadius="md"
             shadow="md"
@@ -220,11 +226,24 @@ const MedicineManagement = () => {
             w={{ base: '30%', md: '15%' }}
             m={1}
           >
-            <Text fontSize="xs" color="gray.600">Items with quantity less than 20</Text>
-            <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTwentyCount}</Text>
+            <Text fontSize="xs" color="gray.600">Items with quantity less than 10</Text>
+            <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTenCount}</Text>
           </Card>
           <Card
-            backgroundColor="red.100"
+            backgroundColor="red"
+            p={2}
+            color={"white"}
+            borderRadius="md"
+            shadow="md"
+            textAlign="center"
+            w={{ base: '30%', md: '15%' }}
+            m={1}
+          >
+            <Text fontSize="xs" >Finished Items</Text>
+            <Text fontSize="md" fontWeight="bold" >{quantityZeroCount}</Text>
+          </Card>
+          <Card
+            backgroundColor="yellow.100"
             p={2}
             borderRadius="md"
             shadow="md"
@@ -232,8 +251,20 @@ const MedicineManagement = () => {
             w={{ base: '30%', md: '15%' }}
             m={1}
           >
-            <Text fontSize="xs" color="gray.600">Finished Items</Text>
-            <Text fontSize="md" fontWeight="bold" color="red.600">{quantityZeroCount}</Text>
+            <Text fontSize="xs" color="gray.600">Expiring in 3 months</Text>
+            <Text fontSize="md" fontWeight="bold" color="yellow.600">{expiringSoonCount}</Text>
+          </Card>
+          <Card
+            backgroundColor="gray.300"
+            p={2}
+            borderRadius="md"
+            shadow="md"
+            textAlign="center"
+            w={{ base: '30%', md: '15%' }}
+            m={1}
+          >
+            <Text fontSize="xs" color="gray.600">Expired Items</Text>
+            <Text fontSize="md" fontWeight="bold" color="gray.600">{expiredCount}</Text>
           </Card>
         </Flex>
 
@@ -274,7 +305,7 @@ const MedicineManagement = () => {
                     <Text><strong>Name:</strong> {medicine.name}</Text>
                     <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
                     <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
-                    <Text><strong>Quantity:</strong> {medicine.quantity}</Text>
+                    <Text color={medicine.quantity < 10 ? "red.600" : "black"}><strong>Quantity:</strong> {medicine.quantity}</Text>
                     <Text><strong>MRP:</strong> {medicine.mrp}</Text>
                     <Text><strong>Rate:</strong> {medicine.rate}</Text>
                     <Text>
@@ -342,40 +373,46 @@ const MedicineManagement = () => {
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {filteredMedicines.map((medicine) => (
-                        <Tr key={medicine.id} backgroundColor={medicine.quantity === 0 ? 'red.100' : medicine.quantity < 20 ? 'orange.100' : 'transparent'}>
-                          <Td>{medicine.id}</Td>
-                          <Td>{medicine.name}</Td>
-                          <Td>{medicine.batch_no}</Td>
-                          <Td>{medicine.manufactured_by}</Td>
-                          <Td>{medicine.quantity}</Td>
-                          <Td>{medicine.rate}</Td>
-                          <Td>{medicine.mrp}</Td>
-                          <Td>{medicine.cgst}</Td>
-                          <Td>{medicine.sgst}</Td>
-                          <Td>{medicine.total}</Td>
-                          <Td>
-                            {new Date(medicine.expiry_date).toLocaleDateString()}
-                          </Td>
-                          <Td>
-                            <IconButton
-                              icon={<MdEdit />}
-                              onClick={() => handleEditMedicine(medicine)}
-                              aria-label="Edit Medicine"
-                              mr={2}
-                              colorScheme="teal"
-                              size="sm"
-                            />
-                            <IconButton
-                              icon={<MdDelete />}
-                              onClick={() => handleDeleteMedicineModal(medicine)}
-                              aria-label="Delete Medicine"
-                              colorScheme="red"
-                              size="sm"
-                            />
-                          </Td>
-                        </Tr>
-                      ))}
+                      {filteredMedicines.map((medicine) => {
+                        const expiryDate = new Date(medicine.expiry_date);
+                        const isExpiringSoon = expiryDate <= threeMonthsLater && expiryDate > currentDate;
+                        const isExpired = expiryDate <= currentDate;
+
+                        return (
+                          <Tr key={medicine.id} backgroundColor={isExpired ? 'red.100' : isExpiringSoon ? 'yellow.100' : 'transparent'}>
+                            <Td>{medicine.id}</Td>
+                            <Td>{medicine.name}</Td>
+                            <Td>{medicine.batch_no}</Td>
+                            <Td>{medicine.manufactured_by}</Td>
+                            <Td bg={medicine.quantity < 10  && medicine.quantity>0? "yellow" :medicine.quantity == 0 ? "red":"white"}>{medicine.quantity}</Td>
+                            <Td>{medicine.rate}</Td>
+                            <Td>{medicine.mrp}</Td>
+                            <Td>{medicine.cgst}</Td>
+                            <Td>{medicine.sgst}</Td>
+                            <Td>{medicine.total}</Td>
+                            <Td>
+                              {expiryDate.toLocaleDateString()}
+                            </Td>
+                            <Td>
+                              <IconButton
+                                icon={<MdEdit />}
+                                onClick={() => handleEditMedicine(medicine)}
+                                aria-label="Edit Medicine"
+                                mr={2}
+                                colorScheme="teal"
+                                size="sm"
+                              />
+                              <IconButton
+                                icon={<MdDelete />}
+                                onClick={() => handleDeleteMedicineModal(medicine)}
+                                aria-label="Delete Medicine"
+                                colorScheme="red"
+                                size="sm"
+                              />
+                            </Td>
+                          </Tr>
+                        );
+                      })}
                     </Tbody>
                   </Table>
                 </TableContainer>
