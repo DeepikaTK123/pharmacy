@@ -177,7 +177,7 @@ const PharmacyBilling = () => {
           align={{ base: 'start', md: 'center' }}
         >
           <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
-            Pharmacy Billing
+            Billing Management
           </Text>
           <Button
             leftIcon={<MdAdd />}

@@ -31,37 +31,39 @@ const Dashboard = () => {
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const [dashboardData, setDashboardData] = useState([]);
   const [billAmounts, setBillAmounts] = useState([]);
+  const [billProfits, setBillProfits] = useState([]);
   const [billDates, setBillDates] = useState([]);
   const [lowStockMedicines, setLowStockMedicines] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [highBillingUsers, setHighBillingUsers] = useState([]);
-  const [timeRange, setTimeRange] = useState('daily');
+  const [timeRange, setTimeRange] = useState('weekly');
   const cardSize = useBreakpointValue({ base: '100%', md: '33%' });
+  const [totalAmountSum, setTotalAmountSum] = useState(0);
+  const [totalProfitSum, setTotalProfitSum] = useState(0);
+  const [dailyEarning, setDailyEarning] = useState({ total_amount: 0, total_profit: 0 });
 
   useEffect(() => {
     fetchDashboardData();
+    fetchLowStockMedicines();
+    fetchHighBillingUsers();
   }, []);
-  
+
   const fetchBillAmounts = useCallback(async (range) => {
     try {
       const response = await getRevenueChart(range);
-      setBillAmounts(response.data.data.map(item => item.amount));
-      setBillDates(response.data.data.map(item => adjustTimeZone(item.interval_date)));
+      const data = response.data.data;
+      setBillAmounts(data.map(item => item.total_amount));
+      setBillProfits(data.map(item => item.total_profit));
+      setBillDates(data.map(item => adjustTimeZone(item.interval_date)));
+      calculateSums(data);
     } catch (error) {
       console.error('Error fetching bill amounts:', error);
     }
   }, []);
+
   useEffect(() => {
     fetchBillAmounts(timeRange);
   }, [timeRange, fetchBillAmounts]);
-
-  useEffect(() => {
-    fetchLowStockMedicines();
-  }, []);
-
-  useEffect(() => {
-    fetchHighBillingUsers();
-  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -74,8 +76,6 @@ const Dashboard = () => {
       console.error('Error fetching dashboard data:', error);
     }
   };
-
-  
 
   const fetchLowStockMedicines = async () => {
     try {
@@ -95,9 +95,7 @@ const Dashboard = () => {
     }
   };
 
-  const adjustTimeZone = (date) => {
-    return date;
-  };
+  const adjustTimeZone = (date) => date;
 
   const getRowCount = (tableName) => {
     const table = dashboardData.find((data) => data.table_name === tableName);
@@ -110,24 +108,20 @@ const Dashboard = () => {
     let min, max;
 
     switch (range) {
-      case 'daily':
-        min = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - offset;
-        max = now.getTime() + offset;
-        break;
       case 'weekly':
-        min = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).getTime() - offset;
+        min = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6).getTime() - offset;
         max = now.getTime() + offset;
         break;
       case 'monthly':
         min = new Date(now.getFullYear(), now.getMonth(), 1).getTime() - offset;
         max = now.getTime() + offset;
         break;
-      case 'yearly':
-        min = new Date(now.getFullYear(), 0, 1).getTime() - offset;
+      case '3months':
+        min = new Date(now.getFullYear(), now.getMonth() - 3, 1).getTime() - offset;
         max = now.getTime() + offset;
         break;
       default:
-        min = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - offset;
+        min = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6).getTime() - offset;
         max = now.getTime() + offset;
         break;
     }
@@ -135,142 +129,157 @@ const Dashboard = () => {
     return { min, max };
   };
 
+  const calculateSums = (data) => {
+    const totalAmountSum = data.reduce((sum, item) => sum + item.total_amount, 0);
+    const totalProfitSum = data.reduce((sum, item) => sum + item.total_profit, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.getTime();
+
+    const todayData = data.find(item => {
+      const itemDate = new Date(item.interval_date);
+      itemDate.setHours(0, 0, 0, 0);
+      return itemDate.getTime() === todayTimestamp;
+    });
+
+    const dailyEarning = todayData ? todayData : { total_amount: 0, total_profit: 0 };
+
+    setTotalAmountSum(totalAmountSum);
+    setTotalProfitSum(totalProfitSum);
+    setDailyEarning(dailyEarning);
+  };
+
   const xAxisRange = getXAxisRange(timeRange);
 
   const billOptions = {
-    chart: { 
-      type: 'line',
-      zoomType: 'x' // Enable zooming on the x-axis
-    },
-    title: { text: 'Total Amount from Bills' },
+    chart: { type: 'column' },
+    title: { text: 'Revenue and Profit' },
     xAxis: {
       type: 'datetime',
-      min: xAxisRange.min,
-      max: xAxisRange.max,
-      dateTimeLabelFormats: {
-        hour: '%H:%M',
-        day: '%e %b',
-        week: '%e %b',
-        month: '%b \'%y',
-        year: '%Y',
-      },
+      min: xAxisRange.min - 24 * 60 * 60 * 1000,
+      max: xAxisRange.max + 24 * 60 * 60 * 1000,
+      dateTimeLabelFormats: { day: '%e %b', week: '%e %b', month: '%b \'%y', year: '%Y' },
       title: { text: 'Date' },
     },
-    yAxis: { title: { text: 'Total Amount (₹)' } },
-    credits: {
-      enabled: false // Disable credits
+    yAxis: {
+      title: { text: 'Amount / Profit (₹)' },
+      labels: { format: '{value:,.0f}' },
+      min: 0,
     },
-    series: [{ name: 'Total Amount', data: billAmounts.map((value, index) => [billDates[index], value]) }],
+    credits: { enabled: false },
+    series: [
+      {
+        name: 'Total Amount',
+        data: billAmounts.map((value, index) => [billDates[index], value]),
+        dataLabels: {
+          enabled: true,
+          format: '{point.y:,.0f}',
+          style: { color: '#000', textOutline: 'none' },
+        },
+      },
+      {
+        name: 'Total Profit',
+        data: billProfits.map((value, index) => [billDates[index], value]),
+        dataLabels: {
+          enabled: true,
+          format: '{point.y:,.0f}',
+          style: { color: '#FF5733', textOutline: 'none' },
+        },
+      },
+    ],
   };
 
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY={{ sm: 'scroll', lg: 'hidden' }}>
       <Flex flexDirection="column">
         <Flex mt="45px" mb="20px" justifyContent="space-between" align={{ base: 'start', md: 'center' }}>
-        <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">Dashboard</Text>
+          <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">Dashboard</Text>
         </Flex>
         <Flex flexDirection="column">
           <Box flex="1" p={4}>
             <Flex justifyContent="space-between" wrap="wrap">
-              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
-                <StatLabel>Total Medicines in Pharmacy</StatLabel>
-                <StatNumber>{getRowCount('medicines')}</StatNumber>
-                <FaPills size={32} color="orange" />
-              </Stat>
-              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
-                <StatLabel>Total Bills</StatLabel>
-                <StatNumber>{getRowCount('billing')}</StatNumber>
-                <FaFileInvoice size={32} color="teal" />
-              </Stat>
-              <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize}>
-                <StatLabel>Total Revenue</StatLabel>
-                <StatNumber>₹{totalRevenue.toFixed(2)}</StatNumber>
-                <FaMoneyBillWave size={32} color="green" />
-              </Stat>
+              {[
+                { label: 'Total Medicines in Pharmacy', count: getRowCount('medicines'), icon: <FaPills size={32} color="orange" /> },
+                { label: 'Total Bills', count: getRowCount('billing'), icon: <FaFileInvoice size={32} color="teal" /> },
+                { label: 'Total Revenue(Entire Bills)', count: `₹${totalRevenue.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="green" /> },
+                { label: 'Daily Earning/Profit', count: `₹${dailyEarning.total_amount} / ${dailyEarning.total_profit !== null ? `₹${dailyEarning.total_profit}` : 0}`, icon: <FaMoneyBillWave size={32} color="red" /> },
+                { label: 'Total Amount Sum', count: `₹${totalAmountSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="blue" /> },
+                { label: 'Total Profit Sum', count: `₹${totalProfitSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="purple" /> },
+              ].map(({ label, count, icon }) => (
+                <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize} key={label}>
+                  <StatLabel>{label}</StatLabel>
+                  <StatNumber>{count}</StatNumber>
+                  {icon}
+                </Stat>
+              ))}
             </Flex>
             <Box mt={8}>
               <Tabs onChange={(index) => {
-                const ranges = ['daily', 'weekly', 'monthly', 'yearly'];
+                const ranges = ['weekly', 'monthly', '3months'];
                 setTimeRange(ranges[index]);
               }}>
                 <TabList>
-                  <Tab>Daily</Tab>
                   <Tab>Weekly</Tab>
                   <Tab>Monthly</Tab>
-                  <Tab>Yearly</Tab>
+                  <Tab>3 Months</Tab>
                 </TabList>
                 <TabPanels>
-                  <TabPanel>
-                    <HighchartsReact highcharts={Highcharts} options={billOptions} />
-                  </TabPanel>
-                  <TabPanel>
-                    <HighchartsReact highcharts={Highcharts} options={billOptions} />
-                  </TabPanel>
-                  <TabPanel>
-                    <HighchartsReact highcharts={Highcharts} options={billOptions} />
-                  </TabPanel>
-                  <TabPanel>
-                    <HighchartsReact highcharts={Highcharts} options={billOptions} />
-                  </TabPanel>
+                  {['weekly', 'monthly', '3months'].map(range => (
+                    <TabPanel key={range}>
+                      <HighchartsReact highcharts={Highcharts} options={billOptions} />
+                    </TabPanel>
+                  ))}
                 </TabPanels>
               </Tabs>
             </Box>
-            <Box mt={8}>
-              <Card bg="white" p={4} borderRadius="md" boxShadow="md" overflowY="scroll" height="400px">
-                <Text fontSize="xl" mb={4} fontWeight="bold">Medicines with Quantity Less Than 20</Text>
-                <CardBody>
-                  <Box maxHeight="300px" overflowY="scroll">
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>Medicine Name</Th>
-                          <Th>Quantity</Th>
-                          <Th>MRP (₹)</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {lowStockMedicines.map((medicine) => (
-                          <Tr key={medicine.id}>
-                            <Td>{medicine.name}</Td>
-                            <Td>{medicine.quantity}</Td>
-                            <Td>{medicine.mrp}</Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                </CardBody>
-              </Card>
-            </Box>
-            <Box mt={8}>
-              <Card bg="white" p={4} borderRadius="md" boxShadow="md" overflowY="scroll" height="400px">
-                <Text fontSize="xl" mb={4} fontWeight="bold">High Billing Users</Text>
-                <CardBody>
-                  <Box maxHeight="300px" overflowY="scroll">
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>User Name</Th>
-                          <Th>Phone Number</Th>
-                          <Th>Number of Bills</Th>
-                          <Th>Total Bill Amount (₹)</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {highBillingUsers.map((user) => (
-                          <Tr key={user.phone_number}>
-                            <Td>{user.patient_name}</Td>
-                            <Td>{user.phone_number}</Td>
-                            <Td>{user.num_bills}</Td>
-                            <Td>{user.total_amount.toFixed(2)}</Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                </CardBody>
-              </Card>
-            </Box>
+            <Flex mt={8} justifyContent="space-between" wrap="wrap">
+              {[
+                {
+                  title: 'Medicines with Quantity Less Than 20',
+                  data: lowStockMedicines,
+                  columns: [
+                    { Header: 'Medicine Name', accessor: 'name' },
+                    { Header: 'Quantity', accessor: 'quantity' },
+                    { Header: 'MRP (₹)', accessor: 'mrp' },
+                  ],
+                },
+                {
+                  title: 'High Billing Users',
+                  data: highBillingUsers,
+                  columns: [
+                    { Header: 'User Name', accessor: 'patient_name' },
+                    { Header: 'Phone Number', accessor: 'phone_number' },
+                    { Header: 'Number of Bills', accessor: 'num_bills' },
+                    { Header: 'Total Bill Amount (₹)', accessor: 'total_amount', Cell: ({ value }) => value.toFixed(2) },
+                  ],
+                },
+              ].map(({ title, data, columns }) => (
+                <Box flex="1" p={4} mr={4} key={title}>
+                  <Card bg="white" p={4} borderRadius="md" boxShadow="md" overflowY="scroll" height="400px">
+                    <Text fontSize="xl" mb={4} fontWeight="bold">{title}</Text>
+                    <CardBody>
+                      <Box maxHeight="300px" overflowY="scroll">
+                        <Table variant="simple">
+                          <Thead>
+                            <Tr>
+                              {columns.map(col => <Th key={col.Header}>{col.Header}</Th>)}
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {data.map((item, index) => (
+                              <Tr key={index}>
+                                {columns.map(col => <Td key={col.accessor}>{col.Cell ? col.Cell({ value: item[col.accessor] }) : item[col.accessor]}</Td>)}
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </Box>
+                    </CardBody>
+                  </Card>
+                </Box>
+              ))}
+            </Flex>
           </Box>
         </Flex>
       </Flex>

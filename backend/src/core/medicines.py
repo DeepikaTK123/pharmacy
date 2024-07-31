@@ -20,9 +20,6 @@ def handle_database_error(e, connection):
         put_test(connection)
     return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
-# Function to calculate total
-def calculate_total(mrp, cgst, sgst):
-    return mrp + (mrp * cgst / 100) + (mrp * sgst / 100)
 
 # Resource for adding a new medicine
 class AddMedicine(Resource):
@@ -33,13 +30,14 @@ class AddMedicine(Resource):
             connection = get_test()
             value = request.json
 
+
             insert_query = """
-            INSERT INTO medicines(name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, tenant_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO medicines(name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit, tenant_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             record_to_insert = (
                 value["name"], value["batchNo"], value["manufacturedBy"],
-                value["quantity"], value["expiryDate"], value["mrp"], value["cgst"], value["sgst"], value["total"], account_id['tenant_id']
+                value["quantity"], value["expiryDate"], value["mrp"], value["cgst"], value["sgst"], value["total"], value["rate"], value["profit"], account_id['tenant_id']
             )
 
             with connection.cursor() as cursor:
@@ -65,6 +63,8 @@ class EditMedicine(Resource):
             value = request.json
             medicine_id = value["id"]
 
+           
+
             update_fields = {
                 "name": value["name"],
                 "batch_no": value["batchNo"],
@@ -74,7 +74,9 @@ class EditMedicine(Resource):
                 "mrp": value["mrp"],
                 "cgst": value["cgst"],
                 "sgst": value["sgst"],
-                "total": value["total"]
+                "total": value["total"],
+                "rate": value["rate"],
+                "profit": value["profitLoss"]
             }
             update_query = "UPDATE medicines SET {} WHERE id=%s AND tenant_id=%s".format(
                             ", ".join("{}=%s".format(k) for k in update_fields.keys())
@@ -82,7 +84,6 @@ class EditMedicine(Resource):
             with connection.cursor() as cursor:
                 cursor.execute(update_query, list(update_fields.values()) + [medicine_id, account_id['tenant_id']])
                 connection.commit()
-
             
             put_test(connection)
             end_time = datetime.now()
@@ -117,6 +118,7 @@ class DeleteMedicine(Resource):
             return handle_database_error(e, connection)
 
 # Resource for retrieving all medicines
+# Resource for retrieving all medicines
 class GetMedicines(Resource):
     @token_required
     def get(account_id, self):
@@ -124,9 +126,8 @@ class GetMedicines(Resource):
         try:
             start_time = datetime.now()
             connection = get_test()
-            print(account_id)
             sql_select_query = """
-            SELECT id, name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total FROM medicines WHERE tenant_id=%s ORDER BY expiry_date ASC
+            SELECT id, name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit FROM medicines WHERE tenant_id=%s ORDER BY expiry_date ASC
             """
             df = pd.read_sql_query(sql_select_query, connection, params=(account_id['tenant_id'],))
 

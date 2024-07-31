@@ -1,7 +1,8 @@
 import psycopg2
 from psycopg2 import sql
 
-ahost="128.199.19.234"
+# ahost="128.199.19.234"
+ahost="localhost"
 
 def create_table():
     conn = psycopg2.connect(
@@ -36,17 +37,21 @@ def create_table():
     # Create medicines table
     medicines = '''
         CREATE TABLE IF NOT EXISTS medicines (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            batch_no VARCHAR(100), -- Added batch number
-            manufactured_by VARCHAR(255), -- Added manufactured by
-            quantity INT,
-            expiry_date DATE,
-            mrp DECIMAL(10, 2), -- Assuming mrp is a decimal with 10 digits and 2 decimal places
-            tenant_id VARCHAR(50), -- Assuming tenant_id is a string with a maximum length of 50 characters
-            cgst DECIMAL(10, 2), -- Added CGST column
-            sgst DECIMAL(10, 2) -- Added SGST column
-        );
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    batch_no VARCHAR(100) NOT NULL,
+    manufactured_by VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    expiry_date DATE NOT NULL,
+    mrp DECIMAL(10, 2) NOT NULL,
+    cgst DECIMAL(5, 2) NOT NULL,
+    sgst DECIMAL(5, 2) NOT NULL,
+    total DECIMAL(10, 2) NOT NULL,
+    rate DECIMAL(10, 2),
+    profit DECIMAL(10, 2),  -- Added profit column
+    tenant_id INT NOT NULL
+);
+
     '''
     cursor.execute(medicines)
     conn.commit()
@@ -57,6 +62,7 @@ CREATE TABLE IF NOT EXISTS billing (
     patient_name VARCHAR(255),
     phone_number VARCHAR(20),
     date DATE,
+    dob DATE,
     status VARCHAR(50),
     discount DECIMAL(10, 2),
     subtotal DECIMAL(10, 2),
@@ -90,28 +96,14 @@ def alter_table():
     cursor = conn.cursor()
 
     alter_medicines = '''
-        ALTER TABLE medicines
-        ADD COLUMN total DECIMAL(10, 2),
-        ADD COLUMN ip_no VARCHAR(45);
-    '''
-    cursor.execute(alter_medicines)
-    conn.commit()
-    alter_billing='''
-        ALTER TABLE billing
-        ADD COLUMN ip_no VARCHAR(45);
+       ALTER TABLE medicines
+ADD COLUMN sold INT DEFAULT 0;
 
     '''
-    cursor.execute(alter_billing)
-    conn.commit()
-    alter_tenants = '''
-        ALTER TABLE tenants
-        ADD COLUMN druglicense_no VARCHAR(45);
-    '''
-    cursor.execute(alter_tenants)
+    cursor.execute(alter_medicines)
     conn.commit()
     conn.close()
     print("Tables altered successfully.")
 
 create_table()
-alter_table()
-
+# alter_table()

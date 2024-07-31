@@ -148,6 +148,7 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
             }}
           >
             <Flex justify="center" mb={4} flexDirection="column" alignItems="center">
+             
               <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
               <Text>{userData.address} - {userData.pincode}</Text>
               <Flex justify="space-between" width="100%">
@@ -174,6 +175,7 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
                 <Text>{billingData.gender}</Text>
               </Box>
               <Box textAlign="right">
+              <Text><strong>Doctor:</strong> {userData.username}</Text>
                 <Text><strong>Invoice ID:</strong> {billingData.id}</Text>
                 {billingData.ip_no && (
                   <Text><strong>IP No.:</strong> {billingData.ip_no}</Text>

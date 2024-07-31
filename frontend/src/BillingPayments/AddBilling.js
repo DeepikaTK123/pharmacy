@@ -65,6 +65,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
           manufacturedBy: med.manufactured_by,
           cgst: med.cgst,
           sgst: med.sgst,
+          rate:med.rate,
           total: med.total
         }));
         setMedicines(medicinesData);

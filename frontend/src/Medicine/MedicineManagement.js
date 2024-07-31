@@ -35,7 +35,7 @@ const MedicineManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editMedicineData, setEditMedicineData] = useState(null);
   const [deleteMedicineData, setDeleteMedicineData] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
   const [searchTerm, setSearchTerm] = useState('');
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const toast = useToast();
@@ -47,12 +47,13 @@ const MedicineManagement = () => {
   }, []);
 
   const fetchMedicines = async () => {
+    setLoading(true);
     try {
       const response = await getMedicines();
       setMedicines(response.data.data);
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching medicines', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -136,24 +137,19 @@ const MedicineManagement = () => {
   };
 
   const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
+    const direction = sortConfig.key === key && sortConfig.direction === 'ascending'
+      ? 'descending'
+      : 'ascending';
     setSortConfig({ key, direction });
   };
 
-  const sortedMedicines = [...medicines].sort((a, b) => {
-    if (sortConfig.direction === 'ascending') {
-      if (a[sortConfig.key] < b[sortConfig.key]) return -1;
-      if (a[sortConfig.key] > b[sortConfig.key]) return 1;
+  const sortedMedicines = React.useMemo(() => {
+    return [...medicines].sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
+      if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
-    } else {
-      if (a[sortConfig.key] < b[sortConfig.key]) return 1;
-      if (a[sortConfig.key] > b[sortConfig.key]) return -1;
-      return 0;
-    }
-  });
+    });
+  }, [medicines, sortConfig]);
 
   const filteredMedicines = sortedMedicines.filter((medicine) =>
     (medicine.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,15 +157,21 @@ const MedicineManagement = () => {
     (medicine.batch_no || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Calculate counts for quantity conditions
+  const quantityLessThanTwentyCount = medicines.filter((medicine) => medicine.quantity < 20).length;
+  const quantityZeroCount = medicines.filter((medicine) => medicine.quantity === 0).length;
+
   return (
-    <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY={{ sm: 'scroll', lg: 'hidden' }}>
-      <Flex flexDirection="column">
-        <Flex mt={{ base: '20px', md: '45px' }}
-          mb="20px"
-          flexDirection={{ base: 'column', md: 'row' }}
-          justifyContent="space-between"
-          align={{ base: 'start', md: 'center' }}>
-        <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
+    <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
+    <Flex flexDirection="column">
+      <Flex
+        mt={{ base: '20px', md: '45px' }}
+        mb="20px"
+        flexDirection={{ base: 'column', md: 'row' }}
+        justifyContent="space-between"
+        align={{ base: 'start', md: 'center' }}
+      >
+          <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
             Medicine Management
           </Text>
           <Flex justifyContent="flex-end" gap="10px">
@@ -182,14 +184,14 @@ const MedicineManagement = () => {
               justifyContent="center"
               fontFamily="inherit"
               fontWeight="500"
-              fontSize={{ base: 'sm', md: '13px' }}
-            textTransform="uppercase"
-            letterSpacing="0.4px"
-            color="white"
-            backgroundColor="#3d94cf"
-            border="2px solid rgba(255, 255, 255, 0.333)"
-            borderRadius="40px"
-            padding={{ base: '12px 20px', md: '16px 24px' }}
+              fontSize={{ base: 'xs', md: 'sm' }}
+              textTransform="uppercase"
+              letterSpacing="0.4px"
+              color="white"
+              backgroundColor="#3d94cf"
+              border="2px solid rgba(255, 255, 255, 0.333)"
+              borderRadius="20px"
+              padding={{ base: '8px 12px', md: '10px 14px' }}
               transform="translate(0px, 0px) rotate(0deg)"
               transition="0.2s"
               boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
@@ -207,6 +209,38 @@ const MedicineManagement = () => {
           </Flex>
         </Flex>
 
+        {/* Cards for quantity counts */}
+        <Flex justifyContent="center" mb="10px" wrap="nowrap">
+  <Card 
+    backgroundColor="orange.100" 
+    p={2} 
+    borderRadius="md" 
+    shadow="md" 
+    textAlign="center" 
+    w={{ base: '30%', md: '15%' }} 
+    m={1}
+  >
+    <Text fontSize="xs" color="gray.600">Items with quantity less than 20</Text>
+    <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTwentyCount}</Text>
+    
+  </Card>
+  <Card 
+    backgroundColor="red.100" 
+    p={2} 
+    borderRadius="md" 
+    shadow="md" 
+    textAlign="center" 
+    w={{ base: '30%', md: '15%' }} 
+    m={1}
+  >
+  
+    
+    <Text fontSize="xs" color="gray.600">Finished Items</Text>
+    <Text fontSize="md" fontWeight="bold" color="red.600">{quantityZeroCount}</Text>
+  </Card>
+</Flex>
+
+              <Card p={2}>
         {/* Search Bar */}
         <Flex justify="flex-end" mt={4} mr={4}>
           <InputGroup>
@@ -216,6 +250,7 @@ const MedicineManagement = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               backgroundColor="white"
+              size="md"
             />
             <InputRightElement>
               <IconButton
@@ -223,32 +258,30 @@ const MedicineManagement = () => {
                 icon={<SearchIcon />}
                 onClick={() => setSearchTerm('')}
                 variant="ghost"
+                size="md"
               />
             </InputRightElement>
           </InputGroup>
         </Flex>
 
-        <Flex justifyContent="center" mt={30}>
+        <Flex justifyContent="center" mt={20}>
           {loading ? (
             <Flex justify="center" align="center" height="10vh">
-              <Spinner size="xl" />
+              <Spinner size="lg" />
             </Flex>
           ) : isSmallScreen ? (
             <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={5}>
               {filteredMedicines.map((medicine) => (
-                <Box key={medicine.id} p={9} shadow="md" borderWidth="1px" borderRadius="md">
+                <Box key={medicine.id} p={3} shadow="md" borderWidth="1px" borderRadius="md">
                   <Text fontWeight="bold">ID: {medicine.id}</Text>
                   <Text><strong>Name:</strong> {medicine.name}</Text>
                   <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
                   <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
                   <Text><strong>Quantity:</strong> {medicine.quantity}</Text>
                   <Text><strong>MRP:</strong> {medicine.mrp}</Text>
+                  <Text><strong>Rate:</strong> {medicine.rate}</Text>
                   <Text>
-                    <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}
                   </Text>
                   <Flex mt={2} justifyContent="space-between">
                     <IconButton
@@ -270,9 +303,9 @@ const MedicineManagement = () => {
               ))}
             </SimpleGrid>
           ) : (
-            <Card width="97%" borderRadius={40}>
-              <TableContainer p={5}>
-                <Table variant="simple">
+            <Card width="95%" borderRadius={20}>
+              <TableContainer >
+                <Table variant="simple" size="md">
                   <Thead>
                     <Tr>
                       <Th onClick={() => handleSort('id')} cursor="pointer">
@@ -289,6 +322,9 @@ const MedicineManagement = () => {
                       </Th>
                       <Th onClick={() => handleSort('quantity')} cursor="pointer">
                         Quantity
+                      </Th>
+                      <Th onClick={() => handleSort('rate')} cursor="pointer">
+                        Rate
                       </Th>
                       <Th onClick={() => handleSort('mrp')} cursor="pointer">
                         MRP
@@ -310,22 +346,19 @@ const MedicineManagement = () => {
                   </Thead>
                   <Tbody>
                     {filteredMedicines.map((medicine) => (
-                      <Tr key={medicine.id}>
+                      <Tr key={medicine.id} backgroundColor={medicine.quantity < 20 ? 'orange.100' : medicine.quantity === 0 ? 'red.100' : 'transparent'}>
                         <Td>{medicine.id}</Td>
                         <Td>{medicine.name}</Td>
                         <Td>{medicine.batch_no}</Td>
                         <Td>{medicine.manufactured_by}</Td>
                         <Td>{medicine.quantity}</Td>
-                        <Td>{medicine.mrp}</Td> {/* Display MRP as number */}
-                        <Td>{medicine.cgst}</Td> {/* Display CGST */}
-                        <Td>{medicine.sgst}</Td> {/* Display SGST */}
-                        <Td>{medicine.total}</Td> {/* Display Total */}
+                        <Td>{medicine.rate}</Td>
+                        <Td>{medicine.mrp}</Td>
+                        <Td>{medicine.cgst}</Td>
+                        <Td>{medicine.sgst}</Td>
+                        <Td>{medicine.total}</Td>
                         <Td>
-                          {new Date(medicine.expiry_date).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {new Date(medicine.expiry_date).toLocaleDateString()}
                         </Td>
                         <Td>
                           <IconButton
@@ -349,9 +382,10 @@ const MedicineManagement = () => {
                   </Tbody>
                 </Table>
               </TableContainer>
-            </Card>
+             </Card>
           )}
         </Flex>
+        </Card>
       </Flex>
 
       {/* AddMedicine modal */}
@@ -364,7 +398,7 @@ const MedicineManagement = () => {
       {/* EditMedicine modal */}
       {editMedicineData && (
         <EditMedicine
-          isOpen={true}
+          isOpen={!!editMedicineData}
           onClose={() => setEditMedicineData(null)}
           updateMedicineProp={editMedicineData}
           updateMedicine={handleUpdateMedicine}
@@ -374,7 +408,7 @@ const MedicineManagement = () => {
       {/* DeleteMedicine modal */}
       {deleteMedicineData && (
         <DeleteMedicine
-          isOpen={true}
+          isOpen={!!deleteMedicineData}
           onClose={() => setDeleteMedicineData(null)}
           deleteMedicineProp={deleteMedicineData}
           deleteMedicine={() => handleDeleteMedicine(deleteMedicineData.id)}

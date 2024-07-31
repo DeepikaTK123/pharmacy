@@ -12,7 +12,12 @@ import {
   Input,
   Button,
   useToast,
+  Tooltip,
+  IconButton,
+  Box,
+  Text
 } from '@chakra-ui/react';
+import { InfoIcon } from '@chakra-ui/icons';
 
 const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
   const [newMedicine, setNewMedicine] = useState({
@@ -21,12 +26,14 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
     quantity: '',
     expiryDate: '',
     mrp: '',
+    rate: '',  // Added rate
     cgst: '',
     sgst: '',
     manufacturedBy: '',
     total: '',
   });
 
+  const [profit, setProfit] = useState(null); // State for profit calculation
   const toast = useToast();
 
   const handleInputChange = (e) => {
@@ -43,23 +50,38 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
       setNewMedicine({ ...newMedicine, total: total.toFixed(2) });
     };
 
+    const calculateProfit = () => {
+      const mrp = parseFloat(newMedicine.mrp) || 0;
+      const rate = parseFloat(newMedicine.rate) || 0; // Treat empty rate as 0
+      const profit = rate !== 0 ? mrp - rate : 0; // Calculate profit if rate is not zero
+      setProfit(profit);
+    };
+
     calculateTotal();
-  }, [newMedicine.mrp, newMedicine.cgst, newMedicine.sgst]);
+    calculateProfit();
+  }, [newMedicine.mrp, newMedicine.cgst, newMedicine.sgst, newMedicine.rate]);
 
   const handleSubmit = () => {
     if (newMedicine.name && newMedicine.batchNo && newMedicine.quantity && newMedicine.expiryDate && newMedicine.mrp && newMedicine.cgst && newMedicine.sgst && newMedicine.manufacturedBy) {
-      addNewMedicine(newMedicine);
+      const payload = {
+        ...newMedicine,
+        rate: newMedicine.rate || null, // Send null if rate is empty
+        profit: profit !== null ? profit : null, // Send null if profit is not calculated
+      };
+      addNewMedicine(payload);
       setNewMedicine({
         name: '',
         batchNo: '',
         quantity: '',
         expiryDate: '',
         mrp: '',
+        rate: '',  // Reset rate
         cgst: '',
         sgst: '',
         manufacturedBy: '',
         total: '',
       });
+      setProfit(null); // Reset profit
       onClose();
     } else {
       toast({
@@ -100,7 +122,7 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
             />
           </FormControl>
           <FormControl id="quantity" mb={3}>
-            <FormLabel>Quantity</FormLabel>
+            <FormLabel>Quantity (unit)</FormLabel>
             <Input
               type="number"
               name="quantity"
@@ -109,8 +131,40 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
               placeholder="Enter quantity"
             />
           </FormControl>
+          <FormControl id="rate" mb={3}>
+            <FormLabel>
+              Rate
+              <Tooltip label="Rate per unit of medicine. This is the cost of purchase from the supplier and it can be used to track profit and loss." aria-label="Rate tooltip">
+                <IconButton
+                  aria-label="Rate Information"
+                  icon={<InfoIcon />}
+                  variant="link"
+                  ml={2}
+                  size="sm"
+                />
+              </Tooltip>
+            </FormLabel>
+            <Input
+              type="number"
+              name="rate"
+              value={newMedicine.rate}
+              onChange={handleInputChange}
+              placeholder="Enter rate (optional)"
+            />
+          </FormControl>
           <FormControl id="mrp" mb={3}>
-            <FormLabel>MRP</FormLabel>
+            <FormLabel>
+              MRP
+              <Tooltip label="Maximum Retail Price. This is the price at which the medicine is sold to the end customer." aria-label="MRP tooltip">
+                <IconButton
+                  aria-label="MRP Information"
+                  icon={<InfoIcon />}
+                  variant="link"
+                  ml={2}
+                  size="sm"
+                />
+              </Tooltip>
+            </FormLabel>
             <Input
               type="number"
               name="mrp"
@@ -119,6 +173,16 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
               placeholder="Enter MRP"
             />
           </FormControl>
+          {newMedicine.rate && parseFloat(newMedicine.rate) !== 0 && profit !== null && (
+            <Box mt={4}>
+              <Text
+                fontSize="lg"
+                color={profit >= 0 ? 'green.500' : 'red.500'}
+              >
+                {profit >= 0 ? `Profit: ${profit.toFixed(2)} per unit` : `Loss: ${Math.abs(profit).toFixed(2)} per unit`}
+              </Text>
+            </Box>
+          )}
           <FormControl id="cgst" mb={3}>
             <FormLabel>CGST (%)</FormLabel>
             <Input

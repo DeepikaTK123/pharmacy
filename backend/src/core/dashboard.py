@@ -54,24 +54,23 @@ class GetRevenueChart(Resource):
         try:
             start_time = datetime.now()
             connection = get_test()
-            value = request.json.get('period', 'daily')
+            value = request.json.get('period', 'weekly')  # Default to 'weekly'
             tenant_id = account_id["tenant_id"]
-            
+
             # Determine the start date based on the period
             now = datetime.now()
-            if value == 'daily':
-                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                interval = 'hour'
-            elif value == 'weekly':
-                start_date = now - timedelta(days=now.weekday())
+            if value == 'weekly':
+                start_date = now - timedelta(days=7, hours=5, minutes=30)
                 start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                interval = 'day'
+                interval = 'week'
             elif value == 'monthly':
-                start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                interval = 'day'
-            elif value == 'yearly':
-                start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                interval = 'month'
+                start_date = now - timedelta(days=30)
+                start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                interval = '3months'
+            elif value == '3months':
+                start_date = now - timedelta(days=90)  # Approximate 3 months
+                start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                interval = '3months'
             else:
                 return make_response(jsonify({"status": "error", "message": "Invalid period", "data": {}}), 400)
 
@@ -79,17 +78,33 @@ class GetRevenueChart(Resource):
             start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
 
             # SQL query to fetch data from the billing table
-            sql_select_query = f"""
-                SELECT 
-                    total AS amount, 
-                    last_updated AS interval_date
-                FROM 
-                    billing
-                WHERE 
-                    date >= '{start_date_str}' AND tenant_id = '{tenant_id}'
-                ORDER BY 
-                    interval_date ASC;
-            """
+            if value in ['weekly', 'monthly','3months']:
+                sql_select_query = f"""
+                   WITH medicine_data AS (
+    SELECT 
+        DATE(date) AS interval_date,
+        jsonb_array_elements(medicines::jsonb) AS medicine, -- Unnest the JSON array
+        total,
+        (jsonb_array_elements(medicines::jsonb)->>'quantity')::numeric AS quantity
+    FROM 
+        billing
+    WHERE 
+        date >= '{start_date_str}' AND tenant_id = '{tenant_id}'
+)
+SELECT 
+    interval_date,
+    SUM((medicine->>'mrp')::numeric * quantity) AS total_amount,
+    SUM(((medicine->>'mrp')::numeric - (medicine->>'rate')::numeric) * quantity) AS total_profit
+FROM 
+    medicine_data
+GROUP BY 
+    interval_date
+ORDER BY 
+    interval_date ASC;
+
+                """
+           
+
             df = pd.read_sql_query(sql_select_query, connection)
             data_json = df.to_json(orient='records')
             data = json.loads(data_json)
@@ -107,6 +122,8 @@ class GetRevenueChart(Resource):
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
 api.add_resource(GetRevenueChart, "/api/dashboard/getrevenuechart")
+
+
 
 class GetLowStockMedicines(Resource):
     @token_required

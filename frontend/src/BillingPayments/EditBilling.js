@@ -61,6 +61,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           manufacturedBy: med.manufactured_by,
           cgst: med.cgst,
           sgst: med.sgst,
+          rate:med.rate,
           total: med.total
         }));
         setMedicines(medicinesData);
@@ -84,14 +85,14 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       ...updateBillingProp,
       patientName: updateBillingProp.patientName || updateBillingProp.patient_name || '',
       phoneNumber: updateBillingProp.phoneNumber || updateBillingProp.phone_number || '',
-      dob: updateBillingProp.dob || '',
+      dob: new Date(updateBillingProp.dob).toISOString().split('T')[0]  || '',
       date: new Date(updateBillingProp.date).toISOString().split('T')[0], // Convert Unix timestamp to YYYY-MM-DD format
       ageYear: updateBillingProp.age_year || null,
       ageMonth: updateBillingProp.age_month || null,
       gender: updateBillingProp.gender || '',
       sgstRate: updateBillingProp.sgst || 9,
       cgstRate: updateBillingProp.cgst || 9,
-      ipNo: updateBillingProp.ipNo || '', // Initialize IP No.
+      ipNo: updateBillingProp.ip_no || '', // Initialize IP No.
     });
   }, [updateBillingProp]);
 

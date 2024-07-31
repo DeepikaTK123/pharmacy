@@ -12,28 +12,48 @@ import {
   Input,
   Button,
   useToast,
+  Tooltip,
+  IconButton,
+  Box,
+  Text
 } from '@chakra-ui/react';
+import { InfoIcon } from '@chakra-ui/icons';
 
 const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) => {
-  console.log(updateMedicineProp);
   const [medicine, setMedicine] = useState({
+    id: '',
     batchNo: '',
     expiry_date: '',
-    id: '',
     manufacturedBy: '',
     mrp: '',
     name: '',
-    quantity: '',
+    quantity: '0', // Initialize quantity as '0'
+    rate: '0', // Initialize rate as '0'
     cgst: '',
     sgst: '',
     total: '',
+    profitLoss: '0' // Initialize profitLoss as '0'
   });
   const toast = useToast();
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setMedicine({ ...medicine, [name]: value });
-  };
+  useEffect(() => {
+    if (updateMedicineProp) {
+      setMedicine({
+        id: updateMedicineProp.id || '',
+        batchNo: updateMedicineProp.batch_no || '',
+        expiry_date: new Date(updateMedicineProp.expiry_date).toISOString().split('T')[0] || '', // Convert to YYYY-MM-DD format
+        manufacturedBy: updateMedicineProp.manufactured_by || '',
+        mrp: updateMedicineProp.mrp || '',
+        name: updateMedicineProp.name || '',
+        quantity: updateMedicineProp.quantity || '0',
+        rate: updateMedicineProp.rate !== null ? updateMedicineProp.rate : '0', // Convert to string, default to '0'
+        cgst: updateMedicineProp.cgst || '',
+        sgst: updateMedicineProp.sgst || '',
+        total: updateMedicineProp.total || '',
+        profitLoss: updateMedicineProp.profitLoss !== null ? updateMedicineProp.profitLoss : '0' // Convert to string, default to '0'
+      });
+    }
+  }, [updateMedicineProp]);
 
   useEffect(() => {
     const calculateTotal = () => {
@@ -41,17 +61,38 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
       const cgst = parseFloat(medicine.cgst) || 0;
       const sgst = parseFloat(medicine.sgst) || 0;
       const total = mrp + (mrp * cgst / 100) + (mrp * sgst / 100);
-      setMedicine({ ...medicine, total: total.toFixed(2) });
+      setMedicine(prevMedicine => ({ ...prevMedicine, total: total.toFixed(2) }));
     };
 
     calculateTotal();
   }, [medicine.mrp, medicine.cgst, medicine.sgst]);
 
+  useEffect(() => {
+    const calculateProfitLoss = () => {
+      const rate = parseFloat(medicine.rate) || 0;
+      const mrp = parseFloat(medicine.mrp) || 0;
+      if (rate > 0) {
+        const profitLoss = (mrp - rate).toFixed(2);
+        setMedicine(prevMedicine => ({ ...prevMedicine, profitLoss }));
+      } else {
+        setMedicine(prevMedicine => ({ ...prevMedicine, profitLoss: '0' }));
+      }
+    };
+
+    calculateProfitLoss();
+  }, [medicine.rate, medicine.mrp]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setMedicine(prevMedicine => ({ ...prevMedicine, [name]: value }));
+  };
+
   const handleSubmit = () => {
-    if (medicine.name && medicine.batchNo && medicine.quantity && medicine.expiry_date && medicine.mrp && medicine.cgst && medicine.sgst && medicine.manufacturedBy) {
+    if (medicine.name && medicine.batchNo && medicine.expiry_date && medicine.mrp && medicine.cgst && medicine.sgst && medicine.manufacturedBy) {
       const updatedMedicine = {
         ...medicine,
-        expiry_date: medicine.expiry_date, // Convert date back to Unix timestamp
+        rate: medicine.rate === '' ? '0' : medicine.rate, // Set rate to '0' if it's an empty string
+        profitLoss: medicine.profitLoss === '' ? '0' : medicine.profitLoss // Set profitLoss to '0' if it's an empty string
       };
       updateMedicine(updatedMedicine);
       onClose();
@@ -65,26 +106,6 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
       });
     }
   };
-
-  const formatDate = (date) => {
-    const d = new Date(date);
-    const month = `${d.getMonth() + 1}`.padStart(2, '0');
-    const day = `${d.getDate()}`.padStart(2, '0');
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`;
-  };
-
-  useEffect(() => {
-    setMedicine({
-      ...updateMedicineProp,
-      batchNo: updateMedicineProp.batch_no,
-      expiry_date: formatDate(updateMedicineProp.expiry_date),
-      manufacturedBy: updateMedicineProp.manufactured_by,
-      cgst: updateMedicineProp.cgst,
-      sgst: updateMedicineProp.sgst,
-      total: (parseFloat(updateMedicineProp.mrp) + (parseFloat(updateMedicineProp.mrp) * parseFloat(updateMedicineProp.cgst) / 100) + (parseFloat(updateMedicineProp.mrp) * parseFloat(updateMedicineProp.sgst) / 100)).toFixed(2),
-    });
-  }, [updateMedicineProp]);
 
   return (
     <Modal isOpen={isOpen} onClose={() => onClose(null)}>
@@ -123,6 +144,27 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
               placeholder="Enter quantity"
             />
           </FormControl>
+          <FormControl id="rate" mb={3}>
+            <FormLabel>
+              Rate
+              <Tooltip label="Rate per unit of medicine. This is the cost of purchase from the supplier and it can be used to track profit and loss." aria-label="Rate tooltip">
+                <IconButton
+                  aria-label="Rate Information"
+                  icon={<InfoIcon />}
+                  variant="link"
+                  ml={2}
+                  size="sm"
+                />
+              </Tooltip>
+            </FormLabel>
+            <Input
+              type="number"
+              name="rate"
+              value={medicine.rate} // Use value directly
+              onChange={handleInputChange}
+              placeholder="Enter rate"
+            />
+          </FormControl>
           <FormControl id="mrp" mb={3}>
             <FormLabel>MRP</FormLabel>
             <Input
@@ -132,6 +174,19 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
               onChange={handleInputChange}
               placeholder="Enter MRP"
             />
+          </FormControl>
+          <FormControl id="profitLoss" mb={3}>
+           
+            {parseFloat(medicine.rate) > 0 && (
+              <Box mt={4}>
+                <Text
+                  fontSize="lg"
+                  color={parseFloat(medicine.profitLoss) >= 0 ? 'green.500' : 'red.500'}
+                >
+                  {parseFloat(medicine.profitLoss) >= 0 ? `Profit: ${medicine.profitLoss} per unit` : `Loss: ${Math.abs(medicine.profitLoss)} per unit`}
+                </Text>
+              </Box>
+            )}
           </FormControl>
           <FormControl id="cgst" mb={3}>
             <FormLabel>CGST (%)</FormLabel>

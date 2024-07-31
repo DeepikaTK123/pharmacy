@@ -4,7 +4,8 @@ import { Icon } from "@chakra-ui/react";
 import {
   MdHome,
   MdPayment,
-  MdLocalPharmacy
+  MdLocalPharmacy,
+  MdStore
 } from "react-icons/md";
 
 const SidebarRoutes = [
@@ -31,7 +32,13 @@ const SidebarRoutes = [
     icon: <Icon as={MdPayment} width="20px" height="20px" color="inherit" />,
     sidebar: true,
   },
- 
+  // {
+  //   name: "Supplier",
+  //   layout: "/admin",
+  //   path: "/supplier",
+  //   icon: <Icon as={MdStore} width="20px" height="20px" color="inherit" />,
+  //   sidebar: true,
+  // },
 ];
 
 const storedUserDataString = sessionStorage.getItem('userData');

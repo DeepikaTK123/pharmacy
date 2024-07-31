@@ -89,3 +89,26 @@ export const getPatientName = (phoneNumber) => {
 export const getHighBillingUsers = () => {
   return axiosInstance.get('/api/dashboard/gethighbillingusers');
 };
+
+export const addSupplier = (data) => {
+  return axiosInstance.post('/api/suppliers/add', data);
+};
+
+export const getSuppliers = () => {
+  return axiosInstance.get('/api/suppliers/get');
+};
+
+export const updateSupplier = (data) => {
+  return axiosInstance.post('/api/suppliers/edit', data);
+};
+
+export const deleteSupplier = (id) => {
+  return axiosInstance.post('/api/suppliers/delete', { id });
+};
+export const uploadInvoice = (data) => {
+  return axiosInstance.post('/api/invoices/upload', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
