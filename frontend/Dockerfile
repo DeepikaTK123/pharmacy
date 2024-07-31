@@ -9,7 +9,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy the SSL certificates
 COPY ssl/e822a21acfa412f0.crt /etc/nginx/ssl/e822a21acfa412f0.crt
 COPY ssl/gd_bundle-g2-g1.crt /etc/nginx/ssl/gd_bundle-g2-g1.crt
-COPY ssl/e822a21acfa412f0.pem /etc/nginx/ssl/e822a21acfa412f0.pem
+COPY ssl/e822a21acfa412f0.key /etc/nginx/ssl/e822a21acfa412f0.key
 
 # Copy the build folder to the Nginx HTML directory
 COPY build /usr/share/nginx/html
