@@ -8,13 +8,10 @@ WORKDIR /app
 COPY . /app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install Gunicorn
-RUN pip install gunicorn
+RUN pip install -r requirements.txt
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
 
-# Run Gunicorn when the container launches
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "run:app"]
+# Run run.py when the container launches
+CMD ["python", "run.py"]
