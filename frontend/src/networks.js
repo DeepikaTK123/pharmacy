@@ -4,7 +4,7 @@ import axios from 'axios';
 // const ip ='http://' + window.location.hostname;
 // const ip="http://192.168.31.117"
 const ip = "https://care4link.com"; // Use HTTPS
-const BASE_URL = ip + ":5000";
+const BASE_URL = ip;
 console.log(BASE_URL);
 
 console.log(BASE_URL)
