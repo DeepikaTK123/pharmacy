@@ -17,4 +17,4 @@ RUN pip install gunicorn
 EXPOSE 5000
 
 # Run Gunicorn when the container launches
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "src.app:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "run:app"]
