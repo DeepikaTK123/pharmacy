@@ -24,6 +24,8 @@ class GetDashboardCount(Resource):
             sql_select_query = f"""
                 SELECT 'medicines' AS table_name, COUNT(*) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
                 UNION ALL
+                SELECT 'medicines_total' AS table_name, COALESCE(SUM(mrp *quantity), 2) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
+                UNION ALL
                 SELECT 'billing' AS table_name, COUNT(*) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}'
                 UNION ALL
                 SELECT 'billing_total_sum' AS table_name, COALESCE(SUM(total), 0) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}';
@@ -31,6 +33,7 @@ class GetDashboardCount(Resource):
             df = pd.read_sql_query(sql_select_query, connection)
             data_json = df.to_json(orient='records')
             data = json.loads(data_json)
+            print(data)
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time
@@ -135,7 +138,7 @@ class GetLowStockMedicines(Resource):
             tenant_id = account_id["tenant_id"]
             
             sql_select_query = f"""
-                SELECT * FROM public.medicines WHERE quantity < 20 AND tenant_id = '{tenant_id}';
+                SELECT * FROM public.medicines WHERE  tenant_id = '{tenant_id}';
             """
             df = pd.read_sql_query(sql_select_query, connection)
             data_json = df.to_json(orient='records')

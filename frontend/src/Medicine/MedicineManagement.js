@@ -157,14 +157,23 @@ const MedicineManagement = () => {
     (medicine.batch_no || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate counts for quantity conditions and expiry conditions
-  const quantityLessThanTenCount = medicines.filter((medicine) => medicine.quantity > 0 && medicine.quantity < 10).length;
-  const quantityZeroCount = medicines.filter((medicine) => medicine.quantity === 0).length;
   const currentDate = new Date();
   const threeMonthsLater = new Date();
   threeMonthsLater.setMonth(currentDate.getMonth() + 3);
-  const expiringSoonCount = medicines.filter((medicine) => new Date(medicine.expiry_date) <= threeMonthsLater && new Date(medicine.expiry_date) > currentDate).length;
-  const expiredCount = medicines.filter((medicine) => new Date(medicine.expiry_date) <= currentDate).length;
+
+  // Define color indicators for quantity and expiry
+  const getQuantityBgColor = (quantity) => {
+    if (quantity === 0) return 'red.200';
+    if (quantity < 10) return 'orange.200';
+    return 'transparent';
+  };
+
+  const getExpiryColor = (expiryDate) => {
+    const date = new Date(expiryDate);
+    if (date <= currentDate) return 'red.200';
+    if (date <= threeMonthsLater) return 'orange.200';
+    return 'transparent';
+  };
 
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
@@ -214,59 +223,10 @@ const MedicineManagement = () => {
           </Flex>
         </Flex>
 
-        {/* Cards for quantity and expiry counts */}
-        <Flex justifyContent="center" mb="10px" wrap="nowrap">
-          <Card
-            backgroundColor="yellow"
-            color
-            p={2}
-            borderRadius="md"
-            shadow="md"
-            textAlign="center"
-            w={{ base: '30%', md: '15%' }}
-            m={1}
-          >
-            <Text fontSize="xs" color="gray.600">Items with quantity less than 10</Text>
-            <Text fontSize="md" fontWeight="bold" color="orange.600">{quantityLessThanTenCount}</Text>
-          </Card>
-          <Card
-            backgroundColor="red"
-            p={2}
-            color={"white"}
-            borderRadius="md"
-            shadow="md"
-            textAlign="center"
-            w={{ base: '30%', md: '15%' }}
-            m={1}
-          >
-            <Text fontSize="xs" >Finished Items</Text>
-            <Text fontSize="md" fontWeight="bold" >{quantityZeroCount}</Text>
-          </Card>
-          <Card
-            backgroundColor="yellow.100"
-            p={2}
-            borderRadius="md"
-            shadow="md"
-            textAlign="center"
-            w={{ base: '30%', md: '15%' }}
-            m={1}
-          >
-            <Text fontSize="xs" color="gray.600">Expiring in 3 months</Text>
-            <Text fontSize="md" fontWeight="bold" color="yellow.600">{expiringSoonCount}</Text>
-          </Card>
-          <Card
-            backgroundColor="gray.300"
-            p={2}
-            borderRadius="md"
-            shadow="md"
-            textAlign="center"
-            w={{ base: '30%', md: '15%' }}
-            m={1}
-          >
-            <Text fontSize="xs" color="gray.600">Expired Items</Text>
-            <Text fontSize="md" fontWeight="bold" color="gray.600">{expiredCount}</Text>
-          </Card>
-        </Flex>
+        {/* Legend */}
+        <Card p={4} mb={4}>
+          
+        </Card>
 
         <Card p={2}>
           {/* Search Bar */}
@@ -291,8 +251,15 @@ const MedicineManagement = () => {
               </InputRightElement>
             </InputGroup>
           </Flex>
-
-          <Flex justifyContent="center" mt={20}>
+          <Flex mt={5} flexDirection="column" alignItems={'center'}>
+            <Flex>
+              <Box bg="red.200" w="20px" h="20px" mr={2}></Box>
+              <Text mr={4}>Medicine quantity is zero or expired</Text>
+              <Box bg="orange.200" w="20px" h="20px" mr={2}></Box>
+              <Text>Medicine Quantity is less than 10 or expiring soon</Text>
+            </Flex>
+          </Flex>
+          <Flex justifyContent="center" mt={10}>
             {loading ? (
               <Flex justify="center" align="center" height="10vh">
                 <Spinner size="lg" />
@@ -305,12 +272,10 @@ const MedicineManagement = () => {
                     <Text><strong>Name:</strong> {medicine.name}</Text>
                     <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
                     <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
-                    <Text color={medicine.quantity < 10 ? "red.600" : "black"}><strong>Quantity:</strong> {medicine.quantity}</Text>
+                    <Text bg={getQuantityBgColor(medicine.quantity)}><strong>Quantity:</strong> {medicine.quantity}</Text>
                     <Text><strong>MRP:</strong> {medicine.mrp}</Text>
                     <Text><strong>Rate:</strong> {medicine.rate}</Text>
-                    <Text>
-                      <strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}
-                    </Text>
+                    <Text bg={getExpiryColor(medicine.expiry_date)}><strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}</Text>
                     <Flex mt={2} justifyContent="space-between">
                       <IconButton
                         icon={<MdEdit />}
@@ -375,22 +340,20 @@ const MedicineManagement = () => {
                     <Tbody>
                       {filteredMedicines.map((medicine) => {
                         const expiryDate = new Date(medicine.expiry_date);
-                        const isExpiringSoon = expiryDate <= threeMonthsLater && expiryDate > currentDate;
-                        const isExpired = expiryDate <= currentDate;
 
                         return (
-                          <Tr key={medicine.id} backgroundColor={isExpired ? 'red.100' : isExpiringSoon ? 'yellow.100' : 'transparent'}>
+                          <Tr key={medicine.id}>
                             <Td>{medicine.id}</Td>
                             <Td>{medicine.name}</Td>
                             <Td>{medicine.batch_no}</Td>
                             <Td>{medicine.manufactured_by}</Td>
-                            <Td bg={medicine.quantity < 10  && medicine.quantity>0? "yellow" :medicine.quantity == 0 ? "red":"white"}>{medicine.quantity}</Td>
+                            <Td bg={getQuantityBgColor(medicine.quantity)}>{medicine.quantity}</Td>
                             <Td>{medicine.rate}</Td>
                             <Td>{medicine.mrp}</Td>
                             <Td>{medicine.cgst}</Td>
                             <Td>{medicine.sgst}</Td>
                             <Td>{medicine.total}</Td>
-                            <Td>
+                            <Td bg={getExpiryColor(medicine.expiry_date)}>
                               {expiryDate.toLocaleDateString()}
                             </Td>
                             <Td>

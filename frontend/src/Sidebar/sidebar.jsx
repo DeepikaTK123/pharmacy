@@ -39,7 +39,7 @@ function Sidebar() {
   return (
     <>
       <Box display={{ base: "none", md: "none", xl: "block" }} w="100%" position="fixed" minH="100%"
-       
+       bgGradient='linear(to-r, white, #56CCF2)'
       >
         <Box
           transition={variantChange}

@@ -22,7 +22,7 @@ import {
   CardBody,
   useBreakpointValue,
 } from '@chakra-ui/react';
-import { FaPills, FaFileInvoice, FaMoneyBillWave } from 'react-icons/fa';
+import { FaPills, FaFileInvoice, FaMoneyBillWave, FaWarehouse, FaExclamationTriangle, FaExclamationCircle } from 'react-icons/fa';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { getDashboardCount, getRevenueChart, getLowStockMedicines, getHighBillingUsers } from 'networks';
@@ -37,10 +37,14 @@ const Dashboard = () => {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [highBillingUsers, setHighBillingUsers] = useState([]);
   const [timeRange, setTimeRange] = useState('weekly');
-  const cardSize = useBreakpointValue({ base: '100%', md: '33%' });
+  const cardSize = useBreakpointValue({ base: '100%', md: '20%' });
   const [totalAmountSum, setTotalAmountSum] = useState(0);
   const [totalProfitSum, setTotalProfitSum] = useState(0);
   const [dailyEarning, setDailyEarning] = useState({ total_amount: 0, total_profit: 0 });
+  const [lessThanCount, setLessThanCount] = useState(0);
+  const [finishedCount, setFinishedCount] = useState(0);
+  const [expiringInThreeMonthsCount, setExpiringInThreeMonthsCount] = useState(0);
+  const [expiredCount, setExpiredCount] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -80,7 +84,15 @@ const Dashboard = () => {
   const fetchLowStockMedicines = async () => {
     try {
       const response = await getLowStockMedicines();
-      setLowStockMedicines(response.data.data);
+      const data = response.data.data;
+      setLowStockMedicines(data.filter(medicine => medicine.quantity > 0 && medicine.quantity < 10));
+      setLessThanCount(data.filter(medicine => medicine.quantity > 0 && medicine.quantity < 10).length);
+      setFinishedCount(data.filter(medicine => medicine.quantity === 0).length);
+      const currentDate = new Date();
+      const threeMonthsLater = new Date();
+      threeMonthsLater.setMonth(currentDate.getMonth() + 3);
+      setExpiringInThreeMonthsCount(data.filter(medicine => new Date(medicine.expiry_date) <= threeMonthsLater && new Date(medicine.expiry_date) > currentDate).length);
+      setExpiredCount(data.filter(medicine => new Date(medicine.expiry_date) <= currentDate).length);
     } catch (error) {
       console.error('Error fetching low stock medicines:', error);
     }
@@ -198,21 +210,46 @@ const Dashboard = () => {
         </Flex>
         <Flex flexDirection="column">
           <Box flex="1" p={4}>
-            <Flex justifyContent="space-between" wrap="wrap">
-              {[
-                { label: 'Total Medicines in Pharmacy', count: getRowCount('medicines'), icon: <FaPills size={32} color="orange" /> },
-                { label: 'Total Bills', count: getRowCount('billing'), icon: <FaFileInvoice size={32} color="teal" /> },
-                { label: 'Total Revenue(Entire Bills)', count: `₹${totalRevenue.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="green" /> },
-                { label: 'Daily Earning/Profit', count: `₹${dailyEarning.total_amount} / ${dailyEarning.total_profit !== null ? `₹${dailyEarning.total_profit}` : 0}`, icon: <FaMoneyBillWave size={32} color="red" /> },
-                { label: 'Total Amount Sum', count: `₹${totalAmountSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="blue" /> },
-                { label: 'Total Profit Sum', count: `₹${totalProfitSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="purple" /> },
-              ].map(({ label, count, icon }) => (
-                <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize} key={label}>
-                  <StatLabel>{label}</StatLabel>
-                  <StatNumber>{count}</StatNumber>
-                  {icon}
-                </Stat>
-              ))}
+            <Flex justifyContent="space-between" wrap="wrap" mb={8}>
+              <Card width="100%" p={4}>
+              <Text color={textColor} fontSize={{ base: 'lg', md: 'xl' }} fontWeight="600">Medicines</Text>
+                <Flex justifyContent="space-between" wrap="wrap">
+                  {[
+                    { label: 'Total Medicines in Pharmacy', count: getRowCount('medicines'), icon: <FaWarehouse size={32} color="#0000ff94" /> },
+                    { label: 'Total Medicines Worth', count: `₹${getRowCount('medicines_total')}`, icon: <FaMoneyBillWave size={32} color="green" /> },
+                    { label: 'Medicines Quantity less than 10', count: lessThanCount, icon: <FaPills size={32} color="orange" /> },
+                    { label: 'Out of Stock Medicines', count: finishedCount, icon: <FaPills size={32} color="red" /> },
+                    { label: 'Medicines Expiring in 3 Months', count: expiringInThreeMonthsCount, icon: <FaExclamationTriangle size={28} color="orange" /> },
+                    { label: 'Expired Medicines', count: expiredCount, icon: <FaExclamationCircle size={28} color="red" /> },
+                  ].map(({ label, count, icon }) => (
+                    <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize} key={label}>
+                      <StatLabel>{label}</StatLabel>
+                      <StatNumber>{count}</StatNumber>
+                      {icon}
+                    </Stat>
+                  ))}
+                </Flex>
+              </Card>
+            </Flex>
+            <Flex justifyContent="space-between" wrap="wrap" mb={8}>
+              <Card width="100%" p={4}>
+              <Text color={textColor} fontSize={{ base: 'lg', md: 'xl' }} fontWeight="600">Billing</Text>
+                <Flex justifyContent="space-between" wrap="wrap">
+                  {[
+                    { label: 'Total Bills', count: getRowCount('billing'), icon: <FaFileInvoice size={32} color="teal" /> },
+                    { label: 'Total Revenue(Entire Bills)', count: `₹${totalRevenue.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="green" /> },
+                    { label: 'Total Amount Sum', count: `₹${totalAmountSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="blue" /> },
+                    { label: 'Total Profit Sum', count: `₹${totalProfitSum.toFixed(2)}`, icon: <FaMoneyBillWave size={32} color="purple" /> },
+                    { label: 'Daily Earning/Profit', count: `₹${dailyEarning.total_amount} / ${dailyEarning.total_profit !== null ? `₹${dailyEarning.total_profit}` : 0}`, icon: <FaMoneyBillWave size={32} color="red" /> },
+                  ].map(({ label, count, icon }) => (
+                    <Stat bg="white" p={4} borderRadius="md" boxShadow="md" m={4} flexBasis={cardSize} key={label}>
+                      <StatLabel>{label}</StatLabel>
+                      <StatNumber>{count}</StatNumber>
+                      {icon}
+                    </Stat>
+                  ))}
+                </Flex>
+              </Card>
             </Flex>
             <Box mt={8}>
               <Tabs onChange={(index) => {
@@ -236,7 +273,7 @@ const Dashboard = () => {
             <Flex mt={8} justifyContent="space-between" wrap="wrap">
               {[
                 {
-                  title: 'Medicines with Quantity Less Than 20',
+                  title: 'Medicines with Quantity Less Than 10',
                   data: lowStockMedicines,
                   columns: [
                     { Header: 'Medicine Name', accessor: 'name' },
