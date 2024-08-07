@@ -6,6 +6,9 @@ import Pharmacy from "Medicine/MedicineManagement";
 import Dashboard from "Dashboard/Dashboard";
 import BillsAndPayments from "BillingPayments/BillingAndPayments";
 import Supplier from "Supplier/Supplier";
+import Prescription from "Prescription/Prescription";
+import Services from "Services/Services";
+import Patients from "Patients/Patients";
 
 const LazyLoad = () => {
   useEffect(() => {
@@ -52,6 +55,12 @@ const getElementForRoute = (route) => {
       return <BillsAndPayments />;
     case "/supplier":
       return <Supplier />;
+    case "/prescription":
+      return <Prescription />;
+    case "/services":
+      return <Services />;
+    case "/patients":
+      return <Patients/>;
     default:
       return null;
   }

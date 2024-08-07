@@ -27,24 +27,28 @@ import {
   Select as ChakraSelect,
 } from '@chakra-ui/react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
-import { getMedicines } from 'networks';
+import { getMedicines, getServices, addService } from 'networks';
 
 const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   const [billing, setBilling] = useState({
     patientName: '',
     phoneNumber: '',
-    dob: '', // Added DOB field
+    dob: '',
     ageYear: null,
     ageMonth: null,
     gender: null,
-    medicines: [],
+    items: [],
     date: '',
     status: 'Paid',
     discount: 0,
-    ipNo: '', // Added IP No. field
+    patientNumber: '',
   });
 
   const [medicines, setMedicines] = useState([]);
+  const [services, setServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [newService, setNewService] = useState({ name: '', price: '' });
+  const [isAddingService, setIsAddingService] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -61,7 +65,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           manufacturedBy: med.manufactured_by,
           cgst: med.cgst,
           sgst: med.sgst,
-          rate:med.rate,
+          rate: med.rate,
           total: med.total
         }));
         setMedicines(medicinesData);
@@ -77,22 +81,44 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       }
     };
 
+    const fetchServices = async () => {
+      try {
+        const response = await getServices();
+        const servicesData = response.data.data.map(service => ({
+          value: service.id,
+          label: service.name,
+          price: service.price,
+          total: service.price,
+        }));
+        setServices(servicesData);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+        toast({
+          title: 'Error fetching services.',
+          description: 'Unable to fetch services. Please try again later.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
     fetchMedicines();
+    fetchServices();
   }, [toast]);
 
   useEffect(() => {
     setBilling({
       ...updateBillingProp,
+      patientNumber: updateBillingProp.patientNumber || updateBillingProp.patient_number || '',
       patientName: updateBillingProp.patientName || updateBillingProp.patient_name || '',
       phoneNumber: updateBillingProp.phoneNumber || updateBillingProp.phone_number || '',
-      dob: new Date(updateBillingProp.dob).toISOString().split('T')[0]  || '',
-      date: new Date(updateBillingProp.date).toISOString().split('T')[0], // Convert Unix timestamp to YYYY-MM-DD format
+      dob: new Date(updateBillingProp.dob).toISOString().split('T')[0] || '',
+      date: new Date(updateBillingProp.date).toISOString().split('T')[0],
       ageYear: updateBillingProp.age_year || null,
       ageMonth: updateBillingProp.age_month || null,
       gender: updateBillingProp.gender || '',
-      sgstRate: updateBillingProp.sgst || 9,
-      cgstRate: updateBillingProp.cgst || 9,
-      ipNo: updateBillingProp.ip_no || '', // Initialize IP No.
+      items: updateBillingProp.items || [],
     });
   }, [updateBillingProp]);
 
@@ -123,43 +149,76 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     }
   };
 
-  const handleMedicineChange = (selectedOptions) => {
-    const updatedMedicines = selectedOptions.map(option => {
-      const existingMedicine = billing.medicines.find(med => med.value === option.value);
+  const handleItemsChange = (selectedOptions) => {
+    const updatedItems = selectedOptions.map(option => {
+      const existingItem = billing.items.find(item => item.value === option.value);
       const medicine = medicines.find(med => med.value === option.value);
-      return existingMedicine || {
+      const service = services.find(serv => serv.value === option.value);
+      return existingItem || {
         ...option,
-        quantity: 0, // Default quantity to 0
+        quantity: 0,
         quantityAvailable: medicine ? medicine.quantityAvailable : 0,
         mrp: medicine ? medicine.mrp : 0,
         batchNo: medicine ? medicine.batchNo : 'N/A',
         expiryDate: medicine ? medicine.expiryDate : 'N/A',
         manufacturedBy: medicine ? medicine.manufacturedBy : 'N/A',
+        price: service ? service.price : 0,
+        total: service ? service.total : 0,
       };
     });
-    setBilling({ ...billing, medicines: updatedMedicines });
+    setBilling({ ...billing, items: updatedItems });
   };
 
-  const handleQuantityChange = (medicine, change) => {
-    const updatedMedicines = billing.medicines.map(med => {
-      if (med.value === medicine.value) {
-        const newQuantity = med.quantity + change;
-        const quantityAvailable = med.quantityAvailable - change;
+  const handleQuantityChange = (item, change) => {
+    const updatedItems = billing.items.map(it => {
+      if (it.value === item.value) {
+        const newQuantity = it.quantity + change;
+        const quantityAvailable = it.quantityAvailable - change;
         return {
-          ...med,
+          ...it,
           quantity: Math.max(0, newQuantity),
           quantityAvailable: Math.max(0, quantityAvailable),
         };
       }
-      return med;
+      return it;
     });
-    setBilling({ ...billing, medicines: updatedMedicines });
+    setBilling({ ...billing, items: updatedItems });
+  };
+
+  const handleAddNewService = async () => {
+    if (newService.name && newService.price) {
+      await addService(newService);
+      const service = {
+        label: newService.name,
+        value: newService.name,
+        price: parseFloat(newService.price),
+        total: parseFloat(newService.price),
+      };
+
+      const updatedServices = [...selectedServices, service];
+
+      setSelectedServices(updatedServices);
+      setBilling(prev => ({ ...prev, items: [...prev.items, service] }));
+
+      setNewService({ name: '', price: '' });
+      setIsAddingService(false);
+    } else {
+      toast({
+        title: 'Error.',
+        description: 'Please fill out the service name and price.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const calculateSubtotal = () => {
-    return billing.medicines.reduce((total, medicine) => {
-      return total + (medicine.mrp * medicine.quantity);
-    }, 0).toFixed(2);
+    const itemsSubtotal = billing.items.reduce((total, item) => {
+      return total + (item.price * (item.quantity || 1));
+    }, 0);
+
+    return itemsSubtotal.toFixed(2);
   };
 
   const calculateGST = (subtotal, rate) => {
@@ -183,14 +242,14 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   };
 
   const calculateAverageGST = (type) => {
-    const totalGST = billing.medicines.reduce((total, medicine) => {
-      return total + (type === 'sgst' ? medicine.sgst : medicine.cgst);
+    const totalGST = billing.items.reduce((total, item) => {
+      return total + (type === 'sgst' ? item.sgst : item.cgst);
     }, 0);
-    return (totalGST / billing.medicines.length) || 0;
+    return (totalGST / billing.items.length) || 0;
   };
 
   const handleSubmit = () => {
-    if (billing.patientName && billing.phoneNumber && billing.medicines.length) {
+    if (billing.patientName && billing.phoneNumber && billing.items.length) {
       const subtotal = calculateSubtotal();
       const sgstRate = calculateAverageGST('sgst');
       const cgstRate = calculateAverageGST('cgst');
@@ -255,16 +314,16 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               placeholder="Enter patient name"
             />
           </FormControl>
-          <FormControl id="ipNo" mb={3}> {/* Added IP No. field */}
-            <FormLabel>IP No.</FormLabel>
+          <FormControl id="patientNumber" mb={3}>
+            <FormLabel>Patient No.</FormLabel>
             <Input
-              name="ipNo"
-              value={billing.ipNo}
+              name="patientNumber"
+              value={billing.patientNumber}
               onChange={handleInputChange}
-              placeholder="Enter IP No."
+              placeholder="Enter patient number"
             />
           </FormControl>
-          <FormControl id="dob" mb={3}> {/* Added DOB field */}
+          <FormControl id="dob" mb={3}>
             <FormLabel>Date of Birth</FormLabel>
             <Input
               type="date"
@@ -311,16 +370,43 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               <option value="Other">Other</option>
             </ChakraSelect>
           </FormControl>
-          <FormControl id="medicines" mb={3}>
-            <FormLabel>Medicines</FormLabel>
+          <FormControl id="items" mb={3}>
+            <FormLabel>Items</FormLabel>
             <Select
               isMulti
-              name="medicines"
-              value={billing.medicines}
-              onChange={handleMedicineChange}
-              options={medicines}
-              placeholder="Select medicines"
+              name="items"
+              value={billing.items}
+              onChange={handleItemsChange}
+              options={[...medicines, ...services]}
+              placeholder="Select items"
             />
+            {isAddingService ? (
+              <Box mt={2}>
+                <Flex alignItems="center">
+                  <Input
+                    placeholder="Service Name"
+                    value={newService.name}
+                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                    mr={2}
+                  />
+                  <Input
+                    placeholder="Price"
+                    type="number"
+                    value={newService.price}
+                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                    mr={2}
+                    width="200px"
+                  />
+                  <Button colorScheme="teal" onClick={handleAddNewService} size="md">
+                    Add Service
+                  </Button>
+                </Flex>
+              </Box>
+            ) : (
+              <Button mt={2} colorScheme="teal" onClick={() => setIsAddingService(true)}>
+                Add New Service
+              </Button>
+            )}
           </FormControl>
           <Box
             maxHeight="300px"
@@ -334,55 +420,55 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Table variant="simple">
               <Thead>
                 <Tr>
-                  <Th width="12%">Medicine</Th>
+                  <Th width="12%">Name</Th>
                   <Th width="10%">Batch No</Th>
                   <Th width="10%">Expiry Date</Th>
                   <Th width="10%">Manufactured By</Th>
                   <Th width="8%">Quantity</Th>
-                  <Th width="8%">MRP (₹)</Th>
+                  <Th width="8%">Price (₹)</Th>
                   <Th width="8%">CGST (%)</Th>
                   <Th width="8%">SGST (%)</Th>
                   <Th width="8%">Total (₹)</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {billing.medicines.map(medicine => (
-                  <Tr key={medicine.value}>
-                    <Td>{medicine.label} ({medicine.quantityAvailable} available)</Td>
-                    <Td>{medicine.batchNo || 'N/A'}</Td>
-                    <Td>{medicine.expiryDate || 'N/A'}</Td>
-                    <Td>{medicine.manufacturedBy || 'N/A'}</Td>
+                {billing.items.map(item => (
+                  <Tr key={item.value}>
+                    <Td>{item.label} ({item.quantityAvailable} available)</Td>
+                    <Td>{item.batchNo || 'N/A'}</Td>
+                    <Td>{item.expiryDate || 'N/A'}</Td>
+                    <Td>{item.manufacturedBy || 'N/A'}</Td>
                     <Td>
                       <Flex alignItems="center">
                         <IconButton
                           icon={<FaMinus />}
-                          onClick={() => handleQuantityChange(medicine, -1)}
+                          onClick={() => handleQuantityChange(item, -1)}
                           aria-label="Decrease quantity"
                           size="sm"
                           mr={2}
-                          isDisabled={medicine.quantity <= 0}
+                          isDisabled={item.quantity <= 0}
                         />
                         <Input
                           type="number"
-                          value={medicine.quantity}
+                          value={item.quantity}
                           readOnly
                           width="70px"
                           textAlign="center"
                         />
                         <IconButton
                           icon={<FaPlus />}
-                          onClick={() => handleQuantityChange(medicine, 1)}
+                          onClick={() => handleQuantityChange(item, 1)}
                           aria-label="Increase quantity"
                           size="sm"
                           ml={2}
-                          isDisabled={medicine.quantityAvailable <= 0}
+                          isDisabled={item.quantityAvailable <= 0}
                         />
                       </Flex>
                     </Td>
-                    <Td>{medicine.mrp.toFixed(2)}</Td>
-                    <Td>{medicine.cgst}</Td> {/* Display CGST */}
-                    <Td>{medicine.sgst}</Td> {/* Display SGST */}
-                    <Td>{(medicine.total * medicine.quantity).toFixed(2)}</Td>
+                    <Td>{item.price.toFixed(2)}</Td>
+                    <Td>{item.cgst}</Td>
+                    <Td>{item.sgst}</Td>
+                    <Td>{(item.total * (item.quantity || 1)).toFixed(2)}</Td>
                   </Tr>
                 ))}
               </Tbody>

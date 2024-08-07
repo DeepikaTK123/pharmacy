@@ -27,30 +27,32 @@ import {
   Select as ChakraSelect,
 } from '@chakra-ui/react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
-import { getMedicines, getPatientName } from 'networks'; // Import the getPatientName function
+import { getMedicines, getPatientName, addService, getServices } from 'networks';
 
 const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
-  const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
 
   const [newBilling, setNewBilling] = useState({
     patientName: '',
-    ipNo: '',
+    patientNumber: '',
     phoneNumber: '',
     dob: '', // Date of Birth
     ageYear: null,
     ageMonth: null,
     gender: '',
-    medicines: [],
+    items: [],
     date: today,
     status: 'Paid',
     discount: 0,
   });
 
   const [medicines, setMedicines] = useState([]);
+  const [services, setServices] = useState([]);
+  const [newService, setNewService] = useState({ name: '', price: '' });
+  const [isAddingService, setIsAddingService] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    // Fetch medicines when the component mounts
     const fetchMedicines = async () => {
       try {
         const response = await getMedicines();
@@ -58,15 +60,15 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
           value: med.id,
           label: med.name,
           quantityAvailable: med.quantity,
-          originalQuantity: med.quantity, // Save the original quantity
+          originalQuantity: med.quantity,
           mrp: med.mrp,
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
           manufacturedBy: med.manufactured_by,
           cgst: med.cgst,
           sgst: med.sgst,
-          rate:med.rate,
-          total: med.total
+          rate: med.rate,
+          total: med.total,
         }));
         setMedicines(medicinesData);
       } catch (error) {
@@ -81,7 +83,30 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       }
     };
 
+    const fetchServices = async () => {
+      try {
+        const response = await getServices();
+        const servicesData = response.data.data.map(service => ({
+          value: service.id,
+          label: service.name,
+          price: service.price,
+          total: service.price,
+        }));
+        setServices(servicesData);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+        toast({
+          title: 'Error fetching services.',
+          description: 'Unable to fetch services. Please try again later.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
     fetchMedicines();
+    fetchServices();
   }, [toast]);
 
   const calculateAge = (dob) => {
@@ -91,12 +116,10 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
     const monthDiff = today.getMonth() - birthDate.getMonth();
     const dayDiff = today.getDate() - birthDate.getDate();
 
-    // Set age to 0 if birth year is the same as current year
     if (age < 0 || (age === 0 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
       age = 0;
     }
 
-    // Adjust the age in months if necessary
     const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
 
     return { years: age, months };
@@ -105,18 +128,48 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
 
-    // If the phone number is being changed, call the API to get the patient name
     if (name === 'phoneNumber' && value.length >= 10) {
       try {
         const response = await getPatientName(value);
         if (response.data.status === 'success' && response.data.data.length > 0) {
-          setNewBilling(prev => ({ ...prev, [name]: value, patientName: response.data.data[0].patient_name }));
+          const patient = response.data.data[0];
+          const dobDate = new Date(patient.dob);
+          const dobString = dobDate.toISOString().split('T')[0];
+          const { years, months } = calculateAge(dobDate);
+          setNewBilling(prev => ({
+            ...prev,
+            patientName: patient.name,
+            patientNumber: patient.patient_no,
+            phoneNumber: patient.phone_number,
+            dob: dobString,
+            ageYear: years,
+            ageMonth: months,
+            gender: patient.gender,
+          }));
         } else {
-          setNewBilling(prev => ({ ...prev, [name]: value, patientName: '' }));
+          setNewBilling(prev => ({
+            ...prev,
+            [name]: value,
+            patientName: '',
+            patientNumber: '',
+            dob: '',
+            ageYear: null,
+            ageMonth: null,
+            gender: '',
+          }));
         }
       } catch (error) {
         console.error('Error fetching patient name:', error);
-        setNewBilling(prev => ({ ...prev, [name]: value, patientName: '' }));
+        setNewBilling(prev => ({
+          ...prev,
+          [name]: value,
+          patientName: '',
+          patientNumber: '',
+          dob: '',
+          ageYear: null,
+          ageMonth: null,
+          gender: '',
+        }));
       }
     } else if (name === 'dob') {
       const { years, months } = calculateAge(value);
@@ -126,41 +179,76 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
     }
   };
 
-  const handleMedicineChange = (selectedOptions) => {
-    const updatedMedicines = selectedOptions.map(option => {
-      const existingMedicine = newBilling.medicines.find(med => med.value === option.value);
-      const medicine = medicines.find(med => med.value === option.value);
-      return existingMedicine || {
+  const handleItemChange = (selectedOptions, type) => {
+    const updatedItems = selectedOptions.map(option => {
+      const existingItem = newBilling.items.find(item => item.value === option.value && item.type === type);
+      const itemData = type === 'medicine' ? medicines.find(med => med.value === option.value) : services.find(serv => serv.value === option.value);
+      return existingItem || {
         ...option,
-        quantity: 0, // Initialize with 0
-        quantityAvailable: medicine.quantityAvailable,
+        type,
+        quantity: type === 'medicine' ? 0 : 1, 
+        quantityAvailable: itemData?.quantityAvailable || 1,
+        originalQuantity: itemData?.originalQuantity || 1,
+        price: itemData?.mrp || itemData?.price,
+        total: itemData?.total,
+        cgst: itemData?.cgst || 0,
+        sgst: itemData?.sgst || 0,
       };
     });
 
-    setNewBilling(prev => ({ ...prev, medicines: updatedMedicines }));
+    const otherItems = newBilling.items.filter(item => item.type !== type);
+    setNewBilling(prev => ({ ...prev, items: [...otherItems, ...updatedItems] }));
   };
 
-  const handleQuantityChange = (medicine, change) => {
-    const updatedMedicines = newBilling.medicines.map(med => {
-      if (med.value === medicine.value) {
-        const newQuantity = med.quantity + change;
-        const updatedQuantityAvailable = med.originalQuantity - newQuantity;
+  const handleQuantityChange = (item, change) => {
+    const updatedItems = newBilling.items.map(it => {
+      if (it.value === item.value && it.type === item.type) {
+        const newQuantity = it.quantity + change;
+        const updatedQuantityAvailable = it.originalQuantity - newQuantity;
         return {
-          ...med,
-          quantity: Math.max(0, newQuantity), // Allow quantity to be zero
+          ...it,
+          quantity: Math.max(0, newQuantity),
           quantityAvailable: updatedQuantityAvailable,
         };
       }
-      return med;
+      return it;
     });
 
-    setNewBilling(prev => ({ ...prev, medicines: updatedMedicines }));
+    setNewBilling(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  const handleAddNewService = async () => {
+    if (newService.name && newService.price) {
+      await addService(newService);
+      const service = {
+        label: newService.name,
+        value: newService.name,
+        price: parseFloat(newService.price),
+        total: parseFloat(newService.price),
+      };
+
+      const updatedServices = [...newBilling.items, { ...service, type: 'service', quantity: 1 }];
+
+      setNewBilling(prev => ({ ...prev, items: updatedServices }));
+
+      setNewService({ name: '', price: '' });
+      setIsAddingService(false);
+    } else {
+      toast({
+        title: 'Error.',
+        description: 'Please fill out the service name and price.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const calculateSubtotal = () => {
-    return newBilling.medicines.reduce((total, medicine) => {
-      return total + medicine.mrp * medicine.quantity;
-    }, 0).toFixed(2);
+    const subtotal = newBilling.items.reduce((total, item) => {
+      return total + item.price * item.quantity;
+    }, 0);
+    return subtotal.toFixed(2);
   };
 
   const calculateGST = (subtotal, rate) => {
@@ -184,14 +272,14 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   };
 
   const calculateAverageGST = (type) => {
-    const totalGST = newBilling.medicines.reduce((total, medicine) => {
-      return total + (type === 'sgst' ? medicine.sgst : medicine.cgst);
+    const totalGST = newBilling.items.reduce((total, item) => {
+      return total + (type === 'sgst' ? item.sgst : item.cgst);
     }, 0);
-    return (totalGST / newBilling.medicines.length) || 0;
+    return (totalGST / newBilling.items.length) || 0;
   };
 
   const handleSubmit = () => {
-    if (newBilling.patientName && newBilling.phoneNumber && newBilling.medicines.length) {
+    if (newBilling.patientName && newBilling.phoneNumber && newBilling.items.length) {
       const subtotal = calculateSubtotal();
       const sgstRate = calculateAverageGST('sgst');
       const cgstRate = calculateAverageGST('cgst');
@@ -213,13 +301,13 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
 
       setNewBilling({
         patientName: '',
-        ipNo: '',
+        patientNumber: '',
         phoneNumber: '',
-        dob: '', // Reset date of birth
+        dob: '',
         ageYear: 0,
         ageMonth: 0,
         gender: '',
-        medicines: [],
+        items: [],
         date: today,
         status: 'Paid',
         discount: 0,
@@ -270,13 +358,13 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
               placeholder="Enter patient name"
             />
           </FormControl>
-          <FormControl id="ipNo" mb={3}>
-            <FormLabel>IP No.</FormLabel>
+          <FormControl id="patientNumber" mb={3}>
+            <FormLabel>Patient Number</FormLabel>
             <Input
-              name="ipNo"
-              value={newBilling.ipNo}
+              name="patientNumber"
+              value={newBilling.patientNumber}
               onChange={handleInputChange}
-              placeholder="Enter IP number"
+              placeholder="Enter patient number"
             />
           </FormControl>
           <FormControl id="dob" mb={3}>
@@ -326,13 +414,51 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
               <option value="Other">Other</option>
             </ChakraSelect>
           </FormControl>
+          <FormControl id="services" mb={3}>
+            <FormLabel>Services</FormLabel>
+            <Select
+              isMulti
+              name="services"
+              value={newBilling.items.filter(item => item.type === 'service')}
+              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'service')}
+              options={services}
+              placeholder="Select services"
+            />
+            {isAddingService ? (
+              <Box mt={2}>
+                <Flex alignItems="center">
+                  <Input
+                    placeholder="Service Name"
+                    value={newService.name}
+                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                    mr={2}
+                  />
+                  <Input
+                    placeholder="Price"
+                    type="number"
+                    value={newService.price}
+                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                    mr={2}
+                    width="200px"
+                  />
+                  <Button colorScheme="teal" onClick={handleAddNewService} size="md">
+                    Add Service
+                  </Button>
+                </Flex>
+              </Box>
+            ) : (
+              <Button mt={2} colorScheme="teal" onClick={() => setIsAddingService(true)}>
+                Add New Service
+              </Button>
+            )}
+          </FormControl>
           <FormControl id="medicines" mb={3}>
             <FormLabel>Medicines</FormLabel>
             <Select
               isMulti
               name="medicines"
-              value={newBilling.medicines}
-              onChange={handleMedicineChange}
+              value={newBilling.items.filter(item => item.type === 'medicine')}
+              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'medicine')}
               options={medicines}
               placeholder="Select medicines"
             />
@@ -349,7 +475,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
             <Table variant="simple">
               <Thead>
                 <Tr>
-                  <Th width="12%">Medicine</Th>
+                  <Th width="12%">Name</Th>
                   <Th width="10%">Batch No</Th>
                   <Th width="10%">Expiry Date</Th>
                   <Th width="10%">Manufactured By</Th>
@@ -361,43 +487,43 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
                 </Tr>
               </Thead>
               <Tbody>
-                {newBilling.medicines.map(medicine => (
-                  <Tr key={medicine.value}>
-                    <Td>{medicine.label} ({medicine.quantityAvailable} available)</Td>
-                    <Td>{medicine.batchNo || 'N/A'}</Td>
-                    <Td>{medicine.expiryDate || 'N/A'}</Td>
-                    <Td>{medicine.manufacturedBy || 'N/A'}</Td>
+                {newBilling.items.map(item => (
+                  <Tr key={item.value}>
+                    <Td>{item.label} ({item.quantityAvailable} available)</Td>
+                    <Td>{item.batchNo || 'N/A'}</Td>
+                    <Td>{item.expiryDate || 'N/A'}</Td>
+                    <Td>{item.manufacturedBy || 'N/A'}</Td>
                     <Td>
                       <Flex alignItems="center">
                         <IconButton
                           icon={<FaMinus />}
-                          onClick={() => handleQuantityChange(medicine, -1)}
+                          onClick={() => handleQuantityChange(item, -1)}
                           aria-label="Decrease quantity"
                           size="sm"
                           mr={2}
-                          isDisabled={medicine.quantity <= 0} // Allow quantity to be zero
+                          isDisabled={item.quantity <= 0}
                         />
                         <Input
                           type="number"
-                          value={medicine.quantity}
+                          value={item.quantity}
                           readOnly
                           width="70px"
                           textAlign="center"
                         />
                         <IconButton
                           icon={<FaPlus />}
-                          onClick={() => handleQuantityChange(medicine, 1)}
+                          onClick={() => handleQuantityChange(item, 1)}
                           aria-label="Increase quantity"
                           size="sm"
                           ml={2}
-                          isDisabled={medicine.quantity >= medicine.originalQuantity}
+                          isDisabled={item.quantity >= item.originalQuantity}
                         />
                       </Flex>
                     </Td>
-                    <Td>{medicine.mrp.toFixed(2)}</Td>
-                    <Td>{medicine.cgst}</Td> {/* Display CGST */}
-                    <Td>{medicine.sgst}</Td> {/* Display SGST */}
-                    <Td>{(medicine.total * medicine.quantity).toFixed(2)}</Td>
+                    <Td>{item.price.toFixed(2)}</Td>
+                    <Td>{item.cgst}</Td>
+                    <Td>{item.sgst}</Td>
+                    <Td>{(item.price * item.quantity).toFixed(2)}</Td>
                   </Tr>
                 ))}
               </Tbody>

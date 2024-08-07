@@ -27,12 +27,12 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
     manufacturedBy: '',
     mrp: '',
     name: '',
-    quantity: '0', // Initialize quantity as '0'
-    rate: '0', // Initialize rate as '0'
+    quantity: '0',
+    rate: '0',
     cgst: '',
     sgst: '',
     total: '',
-    profitLoss: '0' // Initialize profitLoss as '0'
+    profitLoss: '0'
   });
   const toast = useToast();
 
@@ -41,16 +41,16 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
       setMedicine({
         id: updateMedicineProp.id || '',
         batchNo: updateMedicineProp.batch_no || '',
-        expiry_date: new Date(updateMedicineProp.expiry_date).toISOString().split('T')[0] || '', // Convert to YYYY-MM-DD format
+        expiry_date: new Date(updateMedicineProp.expiry_date).toISOString().split('T')[0] || '',
         manufacturedBy: updateMedicineProp.manufactured_by || '',
         mrp: updateMedicineProp.mrp || '',
         name: updateMedicineProp.name || '',
         quantity: updateMedicineProp.quantity || '0',
-        rate: updateMedicineProp.rate !== null ? updateMedicineProp.rate : '0', // Convert to string, default to '0'
+        rate: updateMedicineProp.rate !== null ? updateMedicineProp.rate : '0',
         cgst: updateMedicineProp.cgst || '',
         sgst: updateMedicineProp.sgst || '',
         total: updateMedicineProp.total || '',
-        profitLoss: updateMedicineProp.profitLoss !== null ? updateMedicineProp.profitLoss : '0' // Convert to string, default to '0'
+        profitLoss: updateMedicineProp.profitLoss !== null ? updateMedicineProp.profitLoss : '0'
       });
     }
   }, [updateMedicineProp]);
@@ -89,11 +89,14 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
 
   const handleSubmit = () => {
     if (medicine.name && medicine.batchNo && medicine.expiry_date && medicine.mrp && medicine.cgst && medicine.sgst && medicine.manufacturedBy) {
+      const rate = medicine.rate === '0' || medicine.rate === '' ? medicine.mrp : medicine.rate;
+
       const updatedMedicine = {
         ...medicine,
-        rate: medicine.rate === '' ? '0' : medicine.rate, // Set rate to '0' if it's an empty string
-        profitLoss: medicine.profitLoss === '' ? '0' : medicine.profitLoss // Set profitLoss to '0' if it's an empty string
+        rate: rate,
+        profitLoss: (parseFloat(medicine.mrp) - parseFloat(rate)).toFixed(2)
       };
+
       updateMedicine(updatedMedicine);
       onClose();
     } else {
@@ -160,7 +163,7 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
             <Input
               type="number"
               name="rate"
-              value={medicine.rate} // Use value directly
+              value={medicine.rate}
               onChange={handleInputChange}
               placeholder="Enter rate"
             />
@@ -175,19 +178,16 @@ const EditMedicine = ({ isOpen, onClose, updateMedicineProp, updateMedicine }) =
               placeholder="Enter MRP"
             />
           </FormControl>
-          <FormControl id="profitLoss" mb={3}>
-           
-            {parseFloat(medicine.rate) > 0 && (
-              <Box mt={4}>
-                <Text
-                  fontSize="lg"
-                  color={parseFloat(medicine.profitLoss) >= 0 ? 'green.500' : 'red.500'}
-                >
-                  {parseFloat(medicine.profitLoss) >= 0 ? `Profit: ${medicine.profitLoss} per unit` : `Loss: ${Math.abs(medicine.profitLoss)} per unit`}
-                </Text>
-              </Box>
-            )}
-          </FormControl>
+          {parseFloat(medicine.rate) > 0 && (
+            <Box mt={4}>
+              <Text
+                fontSize="lg"
+                color={parseFloat(medicine.profitLoss) >= 0 ? 'green.500' : 'red.500'}
+              >
+                {parseFloat(medicine.profitLoss) >= 0 ? `Profit: ${medicine.profitLoss} per unit` : `Loss: ${Math.abs(medicine.profitLoss)} per unit`}
+              </Text>
+            </Box>
+          )}
           <FormControl id="cgst" mb={3}>
             <FormLabel>CGST (%)</FormLabel>
             <Input

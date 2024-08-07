@@ -35,18 +35,20 @@ def create_app(config):
     from src.core.users import users
     from src.core.dashboard import dashboard
     from src.core.medicines import medicines
-    # from src.core.suppliers import suppliers
+    from src.core.prescriptions import prescriptions  # Import prescriptions blueprint
     from src.core.billing_and_payments import billing_bp
     from src.admin.tenant import tenant
+    from src.core.service import services
+    from src.core.patients import patients
+
 
     app.register_blueprint(users)
     app.register_blueprint(dashboard)
     app.register_blueprint(medicines)
+    app.register_blueprint(prescriptions)  # Register prescriptions blueprint
     app.register_blueprint(billing_bp)
     app.register_blueprint(tenant)
-    # app.register_blueprint(suppliers)
-
+    app.register_blueprint(services)
+    app.register_blueprint(patients)
 
     return app
-    
-   

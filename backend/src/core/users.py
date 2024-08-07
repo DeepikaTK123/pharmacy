@@ -21,7 +21,7 @@ class Login(Resource):
             connection = get_test()
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    SELECT tenant_id, username, email, company_name, phonenumber, address, pincode, gst, druglicense_no 
+                    SELECT tenant_id, username, email, company_name, phonenumber, address, pincode, gst, druglicense_no,logo 
                     FROM tenants 
                     WHERE email=%s AND password=%s
                 """, (value['email'], value['password']))
@@ -42,7 +42,8 @@ class Login(Resource):
                         "address": x[5],
                         "pincode": x[6],
                         "gst": x[7],
-                        "druglicense_no": x[8]  # Add druglicense_no here
+                        "druglicense_no": x[8],
+                        "logo":x[9]
                     }
                     
                     end_time = datetime.now()

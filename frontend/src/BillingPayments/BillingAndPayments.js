@@ -233,11 +233,11 @@ const PharmacyBilling = () => {
                     filteredBilling.map((item) => (
                       <Box key={item.id} mb={4} p={4} borderWidth="1px" borderRadius="lg" overflow="hidden">
                         <Text mb={1}><strong>ID:</strong> {item.id}</Text>
-                        <Text mb={1}><strong>IP No.:</strong> {item.ip_no}</Text>
+                        <Text mb={1}><strong>Patient No.:</strong> {item.patient_number}</Text>
                         <Text mb={1}><strong>Name:</strong> {item.patient_name}</Text>
                         <Text mb={1}><strong>Phone Number:</strong> {item.phone_number}</Text>
-                        <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
-                          <Link href="#" onClick={(e) => e.preventDefault()}>Click Here for Medicines</Link>
+                        <Tooltip label={item.items.map(it => `${it.name} (Qty: ${it.quantity})`).join(', ')}>
+                          <Link href="#" onClick={(e) => e.preventDefault()}>Click Here for Items</Link>
                         </Tooltip>
                         <Text mb={1}><strong>Subtotal:</strong> {item.subtotal}</Text>
                         <Text mb={1}><strong>CGST:</strong> {item.cgst}</Text>
@@ -279,10 +279,10 @@ const PharmacyBilling = () => {
                       <Thead>
                         <Tr>
                           <Th>ID</Th>
-                          <Th>IP No.</Th>
+                          <Th>Patient No.</Th>
                           <Th>Name</Th>
                           <Th>Phone Number</Th>
-                          <Th>Medicines</Th>
+                          <Th>Items</Th>
                           <Th>Subtotal</Th>
                           <Th>CGST</Th>
                           <Th>SGST</Th>
@@ -296,11 +296,11 @@ const PharmacyBilling = () => {
                         {filteredBilling.map((item) => (
                           <Tr key={item.id}>
                             <Td>{item.id}</Td>
-                            <Td>{item.ip_no}</Td>
+                            <Td>{item.patient_number}</Td>
                             <Td>{item.patient_name}</Td>
                             <Td>{item.phone_number}</Td>
                             <Td>
-                              <Tooltip label={item.medicines.map(med => `${med.label} (Qty: ${med.quantity})`).join(', ')}>
+                              <Tooltip label={item.items.map(it => `${it.label} (Qty: ${it.quantity})`).join(', ')}>
                                 <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
                               </Tooltip>
                             </Td>

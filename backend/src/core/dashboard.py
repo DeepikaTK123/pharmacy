@@ -86,9 +86,9 @@ class GetRevenueChart(Resource):
                    WITH medicine_data AS (
     SELECT 
         DATE(date) AS interval_date,
-        jsonb_array_elements(medicines::jsonb) AS medicine, -- Unnest the JSON array
+        jsonb_array_elements(items::jsonb) AS medicine, -- Unnest the JSON array
         total,
-        (jsonb_array_elements(medicines::jsonb)->>'quantity')::numeric AS quantity
+        (jsonb_array_elements(items::jsonb)->>'quantity')::numeric AS quantity
     FROM 
         billing
     WHERE 

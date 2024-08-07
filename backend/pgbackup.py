@@ -40,7 +40,7 @@ def backup_postgresql_db(host, port, dbname, user, password):
 
 # Usage
 if __name__ == "__main__":
-    HOST = '13.201.133.86'
+    HOST = '128.199.19.234'
     PORT = 5432  # Default PostgreSQL port
     DBNAME = 'hospital_management'
     USER = 'Venki'

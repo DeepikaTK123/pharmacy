@@ -18,35 +18,50 @@ class AddBillingRecord(Resource):
             connection = get_test()
             value = request.json
             cursor = connection.cursor()
-            
-            # Filter out medicines with a quantity of 0
-            medicines = [med for med in value.get("medicines", []) if med.get("quantity", 0) > 0]
+            items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
 
-            # Insert billing record
+            cursor.execute("SELECT id FROM patients WHERE phone_number=%s and tenant_id=%s", (value.get("phoneNumber", ""), account_id["tenant_id"]))
+            patient_id = cursor.fetchone()
+            
+            if not patient_id:
+                insert_patient_query = """
+                INSERT INTO patients(tenant_id, patient_no, name, phone_number, dob, gender, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                """
+                patient_record_to_insert = (
+                    account_id["tenant_id"], value.get("patientNumber", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""),
+                    value.get("gender", ""), start_time, start_time
+                )
+                cursor.execute(insert_patient_query, patient_record_to_insert)
+                patient_id = cursor.fetchone()[0]
+            else:
+                patient_id = patient_id[0]
+
             insert_query = """
-            INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender, ip_no)
+            INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, items, tenant_id, age_year, age_month, gender, patient_number)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """
             record_to_insert = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 
                 value.get("status", ""), value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), 
-                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(medicines), account_id.get('tenant_id', ""),
-                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("ipNo", "")
+                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(items), account_id.get('tenant_id', ""),
+                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", "")
             )
             cursor.execute(insert_query, record_to_insert)
             billing_id = cursor.fetchone()[0]
 
             # Update quantities in medicines table
-            for medicine in medicines:
-                update_medicine_query = """
-                UPDATE medicines
-                SET quantity = quantity - %s
-                WHERE id = %s AND quantity >= %s
-                RETURNING quantity
-                """
-                cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"], medicine["quantity"]))
-                if cursor.rowcount == 0:
-                    raise Exception(f"Insufficient quantity for medicine ID {medicine['value']}")
+            for item in items:
+                if item['type'] == 'medicine':
+                    update_medicine_query = """
+                    UPDATE medicines
+                    SET quantity = quantity - %s
+                    WHERE id = %s AND quantity >= %s AND tenant_id=%s
+                    RETURNING quantity
+                    """
+                    cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"], account_id["tenant_id"]))
+                    if cursor.rowcount == 0:
+                        raise Exception(f"Insufficient quantity for medicine ID {item['value']}")
 
             # Commit the transaction
             connection.commit()
@@ -71,46 +86,59 @@ class EditBillingRecord(Resource):
             cursor = connection.cursor()
             print(value)
             # Get the original billing record
-            cursor.execute("SELECT medicines FROM billing WHERE id=%s", (billing_id,))
+            cursor.execute("SELECT items FROM billing WHERE id=%s", (billing_id,))
             original_record = cursor.fetchone()
-            original_medicines = original_record[0]
+            original_items = original_record[0]
 
             # Reverse the quantity deduction for original medicines
-            for medicine in original_medicines:
-                update_medicine_query = """
-                UPDATE medicines
-                SET quantity = quantity + %s
-                WHERE id = %s
-                """
-                cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"]))
+            for item in original_items:
+                if item['type'] == 'medicine':
+                    update_medicine_query = """
+                    UPDATE medicines
+                    SET quantity = quantity + %s
+                    WHERE id = %s
+                    """
+                    cursor.execute(update_medicine_query, (item["quantity"], item["value"]))
 
-            # Filter out medicines with zero quantity
-            updated_medicines = [med for med in value.get("medicines", []) if med.get("quantity", 0) > 0]
+            # Filter out items with zero quantity
+            updated_items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
+
+            # Update the patient record
+            update_patient_query = """
+            UPDATE patients SET patient_no=%s, name=%s, phone_number=%s, dob=%s, gender=%s, updated_at=%s
+            WHERE phone_number=%s AND tenant_id=%s
+            """
+            patient_record_to_update = (
+                value.get("patientNumber", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""),
+                value.get("gender", ""), start_time, value.get("phoneNumber", ""), account_id["tenant_id"]
+            )
+            cursor.execute(update_patient_query, patient_record_to_update)
 
             # Update the billing record
             update_query = """
-            UPDATE billing SET patient_name=%s, phone_number=%s, dob=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, medicines=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s, ip_no=%s
+            UPDATE billing SET patient_name=%s, phone_number=%s, dob=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, items=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s, patient_number=%s
             WHERE id=%s
             """
             record_to_update = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 
                 value.get("status", ""), value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), 
-                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(updated_medicines), account_id.get('tenant_id', ""),
-                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("ipNo", ""), billing_id
+                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(updated_items), account_id.get('tenant_id', ""),
+                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", ""), billing_id
             )
             cursor.execute(update_query, record_to_update)
 
             # Deduct the quantity for the new medicines
-            for medicine in updated_medicines:
-                update_medicine_query = """
-                UPDATE medicines
-                SET quantity = quantity - %s
-                WHERE id = %s AND quantity >= %s
-                RETURNING quantity
-                """
-                cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"], medicine["quantity"]))
-                if cursor.rowcount == 0:
-                    raise Exception(f"Insufficient quantity for medicine ID {medicine['value']}")
+            for item in updated_items:
+                if item['type'] == 'medicine':
+                    update_medicine_query = """
+                    UPDATE medicines
+                    SET quantity = quantity - %s
+                    WHERE id = %s AND quantity >= %s
+                    RETURNING quantity
+                    """
+                    cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"]))
+                    if cursor.rowcount == 0:
+                        raise Exception(f"Insufficient quantity for medicine ID {item['value']}")
 
             # Commit the transaction
             connection.commit()
@@ -124,6 +152,7 @@ class EditBillingRecord(Resource):
             logger.error(f"Exception: {str(e)}")
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
+
 class DeleteBillingRecord(Resource):
     @token_required
     def post(account_id, self):
@@ -132,22 +161,24 @@ class DeleteBillingRecord(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
+            print(value)
             billing_id = value["id"]
             cursor = connection.cursor()
 
             # Get the original billing record
-            cursor.execute("SELECT medicines FROM billing WHERE id=%s", (billing_id,))
+            cursor.execute("SELECT items FROM billing WHERE id=%s", (billing_id,))
             original_record = cursor.fetchone()
-            original_medicines = original_record[0]
+            original_items = original_record[0]
 
             # Reverse the quantity deduction for original medicines
-            for medicine in original_medicines:
-                update_medicine_query = """
-                UPDATE medicines
-                SET quantity = quantity + %s
-                WHERE id = %s
-                """
-                cursor.execute(update_medicine_query, (medicine["quantity"], medicine["value"]))
+            for item in original_items:
+                if item['type'] == 'medicine':
+                    update_medicine_query = """
+                    UPDATE medicines
+                    SET quantity = quantity + %s
+                    WHERE id = %s
+                    """
+                    cursor.execute(update_medicine_query, (item["quantity"], item["value"]))
 
             # Delete the billing record
             cursor.execute("DELETE FROM billing WHERE id=%s", (billing_id,))
@@ -172,8 +203,8 @@ class GetBillingRecords(Resource):
             connection = get_test()
             
             sql_select_query = """
-            SELECT id, patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, medicines, tenant_id, age_year, age_month, gender, ip_no FROM billing
-            WHERE tenant_id=%s
+            SELECT id, patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, items, tenant_id, age_year, age_month, gender, patient_number FROM billing 
+            WHERE tenant_id=%s order by id desc
             """
             df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
             data_json = df.to_json(orient='records')
@@ -199,7 +230,7 @@ class GetPatientName(Resource):
             connection = get_test()
             
             sql_select_query = """
-            SELECT patient_name FROM billing
+            SELECT id, patient_no, name, phone_number, dob, gender FROM patients
             WHERE tenant_id=%s AND phone_number=%s
             """
             df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id'], phone_number])

@@ -9,8 +9,8 @@ import json
 from loguru import logger
 
 # Blueprint and API setup
-medicines = Blueprint("medicines", __name__)
-api = Api(medicines)
+prescriptions = Blueprint("prescriptions", __name__)
+api = Api(prescriptions)
 
 # Helper function to handle database errors and response
 def handle_database_error(e, connection):
@@ -20,37 +20,32 @@ def handle_database_error(e, connection):
         put_test(connection)
     return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
-
-# Resource for adding a new medicine
-class AddMedicine(Resource):
+# Resource for adding a new prescription
+class AddPrescription(Resource):
     @token_required
     def post(account_id, self):
         try:
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-
-            # Check for duplicate medicine
-            check_query = """
-            SELECT COUNT(*) FROM medicines
-            WHERE name = %s AND batch_no = %s AND manufactured_by = %s AND tenant_id = %s
-            """
-            check_values = (value["name"], value["batchNo"], value["manufacturedBy"], account_id['tenant_id'])
-
-            with connection.cursor() as cursor:
-                cursor.execute(check_query, check_values)
-                result = cursor.fetchone()
-                if result[0] > 0:
-                    return make_response(jsonify({"status": "error", "message": "Medicine with same batch and manufacturer already exists"}), 409)
-
-            # Insert new medicine
             insert_query = """
-            INSERT INTO medicines(name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit, tenant_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO prescriptions(tenant_id, doctor_name, patient_name, phone_number, patient_id, patient_dob, patient_gender, blood_pressure, temperature, heart_beat, spo2, diagnosis, medication)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             record_to_insert = (
-                value["name"], value["batchNo"], value["manufacturedBy"],
-                value["quantity"], value["expiryDate"], value["mrp"], value["cgst"], value["sgst"], value["total"], value["rate"], value["profit"], account_id['tenant_id']
+                account_id["tenant_id"],
+                value["doctorName"],
+                value["patientName"],
+                value["phoneNumber"],
+                value.get("patientId"),
+                value["patientDob"],
+                value["patientGender"],
+                value["bloodPressure"],
+                value["temperature"],
+                value["heartBeat"],
+                value["spo2"],
+                value["diagnosis"],
+                json.dumps(value["medications"])
             )
 
             with connection.cursor() as cursor:
@@ -61,42 +56,41 @@ class AddMedicine(Resource):
             end_time = datetime.now()
             time_taken = end_time - start_time
 
-            return make_response(jsonify({"status": "success", "message": "Added New Medicine", "data": {}}), 200)
+            return make_response(jsonify({"status": "success", "message": "Added New Prescription", "data": {}}), 200)
 
         except Exception as e:
             return handle_database_error(e, connection)
 
 
-# Resource for editing an existing medicine
-class EditMedicine(Resource):
+class EditPrescription(Resource):
     @token_required
     def post(account_id, self):
         try:
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            medicine_id = value["id"]
-
-           
+            print(value)
+            prescription_id = value["id"]
 
             update_fields = {
-                "name": value["name"],
-                "batch_no": value["batchNo"],
-                "manufactured_by": value["manufacturedBy"],
-                "quantity": value["quantity"],
-                "expiry_date": value["expiry_date"],
-                "mrp": value["mrp"],
-                "cgst": value["cgst"],
-                "sgst": value["sgst"],
-                "total": value["total"],
-                "rate": value["rate"],
-                "profit": value["profitLoss"]
+                "doctor_name": value["doctorName"],
+                "patient_name": value["patientName"],
+                "phone_number": value["phoneNumber"],
+                "patient_id": value.get("patientId"),
+                "patient_dob": value["patientDob"],
+                "patient_gender": value["patientGender"],
+                "blood_pressure": value["bloodPressure"],
+                "temperature": value["temperature"],
+                "heart_beat": value["heartBeat"],
+                "spo2": value["spo2"],
+                "diagnosis": value["diagnosis"],
+                "medication": json.dumps(value["medications"])
             }
-            update_query = "UPDATE medicines SET {} WHERE id=%s AND tenant_id=%s".format(
+            update_query = "UPDATE prescriptions SET {} WHERE id=%s AND tenant_id=%s".format(
                             ", ".join("{}=%s".format(k) for k in update_fields.keys())
                         )
             with connection.cursor() as cursor:
-                cursor.execute(update_query, list(update_fields.values()) + [medicine_id, account_id['tenant_id']])
+                cursor.execute(update_query, list(update_fields.values()) + [prescription_id, account_id["tenant_id"]])
                 connection.commit()
             
             put_test(connection)
@@ -108,18 +102,18 @@ class EditMedicine(Resource):
         except Exception as e:
             return handle_database_error(e, connection)
 
-# Resource for deleting a medicine
-class DeleteMedicine(Resource):
+# Resource for deleting a prescription
+class DeletePrescription(Resource):
     @token_required
     def post(account_id, self):
         try:
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            medicine_id = value["id"]
+            prescription_id = value["id"]
 
             with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM medicines WHERE id=%s AND tenant_id=%s", (medicine_id, account_id['tenant_id']))
+                cursor.execute("DELETE FROM prescriptions WHERE id=%s AND tenant_id=%s", (prescription_id, account_id["tenant_id"]))
                 connection.commit()
             
             put_test(connection)
@@ -131,7 +125,8 @@ class DeleteMedicine(Resource):
         except Exception as e:
             return handle_database_error(e, connection)
 
-class GetMedicines(Resource):
+# Resource for retrieving all prescriptions
+class GetPrescriptions(Resource):
     @token_required
     def get(account_id, self):
         connection = None
@@ -139,9 +134,10 @@ class GetMedicines(Resource):
             start_time = datetime.now()
             connection = get_test()
             sql_select_query = """
-            SELECT id, name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit FROM medicines WHERE tenant_id=%s ORDER BY expiry_date ASC
+            SELECT id, doctor_name, patient_name, phone_number, patient_id, patient_dob, patient_gender, blood_pressure, temperature, heart_beat, spo2, diagnosis, medication, created_at, updated_at 
+            FROM prescriptions WHERE tenant_id=%s ORDER BY created_at ASC
             """
-            df = pd.read_sql_query(sql_select_query, connection, params=(account_id['tenant_id'],))
+            df = pd.read_sql_query(sql_select_query, connection, params=(account_id["tenant_id"],))
 
             data_json = df.to_json(orient='records')
             data = json.loads(data_json)
@@ -156,7 +152,7 @@ class GetMedicines(Resource):
             return handle_database_error(e, connection)
 
 # Adding resources to the API endpoints
-api.add_resource(AddMedicine, "/api/medicines/addmedicine")
-api.add_resource(EditMedicine, "/api/medicines/edit")
-api.add_resource(DeleteMedicine, "/api/medicines/delete")
-api.add_resource(GetMedicines, "/api/medicines/getmedicines")
+api.add_resource(AddPrescription, "/api/prescriptions/add")
+api.add_resource(EditPrescription, "/api/prescriptions/edit")
+api.add_resource(DeletePrescription, "/api/prescriptions/delete")
+api.add_resource(GetPrescriptions, "/api/prescriptions/get")

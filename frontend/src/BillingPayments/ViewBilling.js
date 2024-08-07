@@ -19,6 +19,7 @@ import {
   Divider,
   Flex,
   useBreakpointValue,
+  Image,
 } from '@chakra-ui/react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -147,23 +148,20 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
               transformOrigin: 'top left'
             }}
           >
-            <Flex justify="center" mb={4} flexDirection="column" alignItems="center">
-             
-              <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
-              <Text>{userData.address} - {userData.pincode}</Text>
-              <Flex justify="space-between" width="100%">
-                <Text><strong>GST:</strong> {userData.gst}</Text>
-                {userData.druglicense_no && (
-                  <Text>
-                    {userData.druglicense_no.split(',').map((part, index) => (
-                      <React.Fragment key={index}>
-                        {index > 0 && <br />}
-                        {part.trim()}
-                      </React.Fragment>
-                    ))}
-                  </Text>
-                )}
-              </Flex>
+            <Flex justify="space-between" mb={4}>
+              {userData.logo && (
+                <Image
+                  src={`data:image/png;base64,${userData.logo}`}
+                  alt="Company Logo"
+                  width="160px"
+                  height="90px"
+                  objectFit="contain"
+                />
+              )}
+              <Box textAlign="center" flex="1" ml={4}>
+                <Text fontSize="xl"><strong>{userData.company_name}</strong></Text>
+                <Text>{userData.address} - {userData.pincode}</Text>
+              </Box>
             </Flex>
             <Divider my={4} />
             <Flex justify="space-between" mb={4}>
@@ -175,10 +173,10 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
                 <Text>{billingData.gender}</Text>
               </Box>
               <Box textAlign="right">
-              <Text><strong>Doctor:</strong> {userData.username}</Text>
+                <Text><strong>Doctor:</strong> {userData.username}</Text>
                 <Text><strong>Invoice ID:</strong> {billingData.id}</Text>
-                {billingData.ip_no && (
-                  <Text><strong>IP No.:</strong> {billingData.ip_no}</Text>
+                {billingData.patient_number && (
+                  <Text><strong>Patient No.:</strong> {billingData.patient_number}</Text>
                 )}
                 <Text><strong>Date:</strong> {new Date(billingData.date).toLocaleString("en-US", {
                   day: "numeric",
@@ -192,25 +190,25 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
               <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
-                    <Th>Medicine Name</Th>
+                    <Th>Item Name</Th>
                     <Th>Batch No</Th>
                     <Th>Expiry Date</Th>
                     <Th>Manufactured By</Th>
                     <Th>Quantity</Th>
-                    <Th>MRP (₹)</Th>
+                    <Th>Price (₹)</Th>
                     <Th>Total (₹)</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {billingData.medicines.map((med, index) => (
+                  {billingData.items.map((item, index) => (
                     <Tr key={index}>
-                      <Td>{med.label}</Td>
-                      <Td>{med.batchNo || 'N/A'}</Td>
-                      <Td>{med.expiryDate || 'N/A'}</Td>
-                      <Td>{med.manufacturedBy || 'N/A'}</Td>
-                      <Td>{med.quantity}</Td>
-                      <Td>{`₹${med.mrp}`}</Td>
-                      <Td>{`₹${(med.mrp * med.quantity).toFixed(2)}`}</Td>
+                      <Td>{item.label}</Td>
+                      <Td>{item.batchNo || 'N/A'}</Td>
+                      <Td>{item.expiryDate || 'N/A'}</Td>
+                      <Td>{item.manufacturedBy || 'N/A'}</Td>
+                      <Td>{item.quantity || 'N/A'}</Td>
+                      <Td>{`₹${item.price}`}</Td>
+                      <Td>{`₹${(item.price * (item.quantity || 1)).toFixed(2)}`}</Td>
                     </Tr>
                   ))}
                 </Tbody>

@@ -26,14 +26,14 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
     quantity: '',
     expiryDate: '',
     mrp: '',
-    rate: '',  // Added rate
+    rate: '',
     cgst: '',
     sgst: '',
     manufacturedBy: '',
     total: '',
   });
 
-  const [profit, setProfit] = useState(null); // State for profit calculation
+  const [profit, setProfit] = useState(null);
   const toast = useToast();
 
   const handleInputChange = (e) => {
@@ -52,8 +52,8 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
 
     const calculateProfit = () => {
       const mrp = parseFloat(newMedicine.mrp) || 0;
-      const rate = parseFloat(newMedicine.rate) || 0; // Treat empty rate as 0
-      const profit = rate !== 0 ? mrp - rate : 0; // Calculate profit if rate is not zero
+      const rate = parseFloat(newMedicine.rate) || 0;
+      const profit = rate !== 0 ? mrp - rate : 0;
       setProfit(profit);
     };
 
@@ -63,10 +63,12 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
 
   const handleSubmit = () => {
     if (newMedicine.name && newMedicine.batchNo && newMedicine.quantity && newMedicine.expiryDate && newMedicine.mrp && newMedicine.cgst && newMedicine.sgst && newMedicine.manufacturedBy) {
+      const rate = newMedicine.rate && parseFloat(newMedicine.rate) !== 0 ? newMedicine.rate : newMedicine.mrp;
+
       const payload = {
         ...newMedicine,
-        rate: newMedicine.rate || null, // Send null if rate is empty
-        profit: profit !== null ? profit : null, // Send null if profit is not calculated
+        rate: rate,
+        profit: rate !== null ? (parseFloat(newMedicine.mrp) - parseFloat(rate)).toFixed(2) : null,
       };
       addNewMedicine(payload);
       setNewMedicine({
@@ -75,13 +77,13 @@ const AddMedicine = ({ isOpen, onClose, addNewMedicine }) => {
         quantity: '',
         expiryDate: '',
         mrp: '',
-        rate: '',  // Reset rate
+        rate: '',
         cgst: '',
         sgst: '',
         manufacturedBy: '',
         total: '',
       });
-      setProfit(null); // Reset profit
+      setProfit(null);
       onClose();
     } else {
       toast({

@@ -338,12 +338,12 @@ const MedicineManagement = () => {
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {filteredMedicines.map((medicine) => {
+                      {filteredMedicines.map((medicine,index) => {
                         const expiryDate = new Date(medicine.expiry_date);
 
                         return (
                           <Tr key={medicine.id}>
-                            <Td>{medicine.id}</Td>
+                            <Td>{index +1}</Td>
                             <Td>{medicine.name}</Td>
                             <Td>{medicine.batch_no}</Td>
                             <Td>{medicine.manufactured_by}</Td>
