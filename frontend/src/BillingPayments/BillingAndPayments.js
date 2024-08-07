@@ -48,8 +48,12 @@ const PharmacyBilling = () => {
     setLoading(true);
     try {
       const response = await getBillingRecords();
-      setBilling(response.data.data);
-      setFilteredBilling(response.data.data);
+      const cleanedData = response.data.data.map(record => ({
+        ...record,
+        items: record.items.filter(item => item !== null)
+      }));
+      setBilling(cleanedData);
+      setFilteredBilling(cleanedData);
     } catch (error) {
       console.error('Error fetching pharmacy billing records:', error);
       toast({
