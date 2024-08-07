@@ -46,7 +46,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
 
   const [medicines, setMedicines] = useState([]);
   const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
   const [newService, setNewService] = useState({ name: '', price: '' });
   const [isAddingService, setIsAddingService] = useState(false);
   const toast = useToast();
@@ -149,40 +148,41 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     }
   };
 
-  const handleItemsChange = (selectedOptions) => {
+  const handleItemChange = (selectedOptions, type) => {
     const updatedItems = selectedOptions.map(option => {
-      const existingItem = billing.items.find(item => item.value === option.value);
-      const medicine = medicines.find(med => med.value === option.value);
-      const service = services.find(serv => serv.value === option.value);
+      const existingItem = billing.items.find(item => item.value === option.value && item.type === type);
+      const itemData = type === 'medicine' ? medicines.find(med => med.value === option.value) : services.find(serv => serv.value === option.value);
       return existingItem || {
         ...option,
-        quantity: 0,
-        quantityAvailable: medicine ? medicine.quantityAvailable : 0,
-        mrp: medicine ? medicine.mrp : 0,
-        batchNo: medicine ? medicine.batchNo : 'N/A',
-        expiryDate: medicine ? medicine.expiryDate : 'N/A',
-        manufacturedBy: medicine ? medicine.manufacturedBy : 'N/A',
-        price: service ? service.price : 0,
-        total: service ? service.total : 0,
+        type,
+        quantity: type === 'medicine' ? 0 : 1, 
+        quantityAvailable: itemData?.quantityAvailable || 1,
+        mrp: itemData?.mrp || itemData?.price,
+        total: itemData?.total,
+        cgst: itemData?.cgst || 0,
+        sgst: itemData?.sgst || 0,
       };
     });
-    setBilling({ ...billing, items: updatedItems });
+
+    const otherItems = billing.items.filter(item => item.type !== type);
+    setBilling(prev => ({ ...prev, items: [...otherItems, ...updatedItems] }));
   };
 
   const handleQuantityChange = (item, change) => {
     const updatedItems = billing.items.map(it => {
-      if (it.value === item.value) {
+      if (it.value === item.value && it.type === item.type) {
         const newQuantity = it.quantity + change;
-        const quantityAvailable = it.quantityAvailable - change;
+        const updatedQuantityAvailable = it.quantityAvailable - change;
         return {
           ...it,
           quantity: Math.max(0, newQuantity),
-          quantityAvailable: Math.max(0, quantityAvailable),
+          quantityAvailable: updatedQuantityAvailable,
         };
       }
       return it;
     });
-    setBilling({ ...billing, items: updatedItems });
+
+    setBilling(prev => ({ ...prev, items: updatedItems }));
   };
 
   const handleAddNewService = async () => {
@@ -195,10 +195,9 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
         total: parseFloat(newService.price),
       };
 
-      const updatedServices = [...selectedServices, service];
+      const updatedServices = [...billing.items, { ...service, type: 'service', quantity: 1 }];
 
-      setSelectedServices(updatedServices);
-      setBilling(prev => ({ ...prev, items: [...prev.items, service] }));
+      setBilling(prev => ({ ...prev, items: updatedServices }));
 
       setNewService({ name: '', price: '' });
       setIsAddingService(false);
@@ -370,15 +369,15 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               <option value="Other">Other</option>
             </ChakraSelect>
           </FormControl>
-          <FormControl id="items" mb={3}>
-            <FormLabel>Items</FormLabel>
+          <FormControl id="services" mb={3}>
+            <FormLabel>Services</FormLabel>
             <Select
               isMulti
-              name="items"
-              value={billing.items}
-              onChange={handleItemsChange}
-              options={[...medicines, ...services]}
-              placeholder="Select items"
+              name="services"
+              value={billing.items.filter(item => item.type === 'service')}
+              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'service')}
+              options={services}
+              placeholder="Select services"
             />
             {isAddingService ? (
               <Box mt={2}>
@@ -407,6 +406,17 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 Add New Service
               </Button>
             )}
+          </FormControl>
+          <FormControl id="medicines" mb={3}>
+            <FormLabel>Medicines</FormLabel>
+            <Select
+              isMulti
+              name="medicines"
+              value={billing.items.filter(item => item.type === 'medicine')}
+              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'medicine')}
+              options={medicines}
+              placeholder="Select medicines"
+            />
           </FormControl>
           <Box
             maxHeight="300px"
