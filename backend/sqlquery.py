@@ -1,8 +1,8 @@
 import psycopg2
 from psycopg2 import sql
 
-# ahost="128.199.19.234"
-ahost="localhost"
+ahost="128.199.19.234"
+# ahost="localhost"
 
 def create_table():
     conn = psycopg2.connect(
@@ -55,7 +55,7 @@ def create_table():
     conn.commit()
 
     billing_table = '''
-       CREATE TABLE billing (
+       CREATE TABLE IF NOT EXISTS billing (
             id SERIAL PRIMARY KEY,
             patient_name VARCHAR(255),
             phone_number VARCHAR(20),
