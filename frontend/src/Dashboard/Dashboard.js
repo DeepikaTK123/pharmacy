@@ -270,7 +270,7 @@ const Dashboard = () => {
                 </TabPanels>
               </Tabs>
             </Box>
-            <Flex mt={8} justifyContent="space-between" wrap="wrap">
+            <Flex mt={8} justifyContent="space-between" wrap="wrap" overflowX="auto">
               {[
                 {
                   title: 'Medicines with Quantity Less Than 10',

@@ -58,7 +58,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           value: med.id,
           label: med.name,
           quantityAvailable: med.quantity,
-          mrp: med.mrp,
+          mrp: med.price,
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
           manufacturedBy: med.manufactured_by,
@@ -475,7 +475,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                         />
                       </Flex>
                     </Td>
-                    <Td>{item.price.toFixed(2)}</Td>
+                    <Td>{item.price}</Td>
                     <Td>{item.cgst}</Td>
                     <Td>{item.sgst}</Td>
                     <Td>{(item.total * (item.quantity || 1)).toFixed(2)}</Td>
