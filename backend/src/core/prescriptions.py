@@ -1,4 +1,3 @@
-import sys
 from flask import Blueprint, request, jsonify, make_response
 from flask_restful import Api, Resource
 from datetime import datetime
@@ -28,6 +27,28 @@ class AddPrescription(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
+
+            cursor = connection.cursor()
+            
+            # Check if patient exists
+            cursor.execute("SELECT id FROM patients WHERE phone_number=%s AND tenant_id=%s", (value.get("phoneNumber", ""), account_id["tenant_id"]))
+            patient_id = cursor.fetchone()
+            
+            if not patient_id:
+                # Insert new patient
+                insert_patient_query = """
+                INSERT INTO patients(tenant_id, patient_no, name, phone_number, dob, gender, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                """
+                patient_record_to_insert = (
+                    account_id["tenant_id"], value.get("patientNumber", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("patientDob", ""),
+                    value.get("patientGender", ""), start_time, start_time
+                )
+                cursor.execute(insert_patient_query, patient_record_to_insert)
+                patient_id = cursor.fetchone()[0]
+            else:
+                patient_id = patient_id[0]
+
             insert_query = """
             INSERT INTO prescriptions(tenant_id, doctor_name, patient_name, phone_number, patient_id, patient_dob, patient_gender, blood_pressure, temperature, heart_beat, spo2, diagnosis, medication)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -37,7 +58,7 @@ class AddPrescription(Resource):
                 value["doctorName"],
                 value["patientName"],
                 value["phoneNumber"],
-                value.get("patientId"),
+                patient_id,
                 value["patientDob"],
                 value["patientGender"],
                 value["bloodPressure"],
@@ -48,9 +69,8 @@ class AddPrescription(Resource):
                 json.dumps(value["medications"])
             )
 
-            with connection.cursor() as cursor:
-                cursor.execute(insert_query, record_to_insert)
-                connection.commit()
+            cursor.execute(insert_query, record_to_insert)
+            connection.commit()
 
             put_test(connection)
             end_time = datetime.now()
@@ -61,7 +81,6 @@ class AddPrescription(Resource):
         except Exception as e:
             return handle_database_error(e, connection)
 
-
 class EditPrescription(Resource):
     @token_required
     def post(account_id, self):
@@ -69,8 +88,20 @@ class EditPrescription(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value)
             prescription_id = value["id"]
+
+            cursor = connection.cursor()
+
+            # Update the patient record
+            update_patient_query = """
+            UPDATE patients SET patient_no=%s, name=%s, phone_number=%s, dob=%s, gender=%s, updated_at=%s
+            WHERE id=%s AND tenant_id=%s
+            """
+            patient_record_to_update = (
+                value.get("patientId", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("patientDob", ""),
+                value.get("patientGender", ""), start_time, value.get("patientId"), account_id["tenant_id"]
+            )
+            cursor.execute(update_patient_query, patient_record_to_update)
 
             update_fields = {
                 "doctor_name": value["doctorName"],
@@ -89,9 +120,8 @@ class EditPrescription(Resource):
             update_query = "UPDATE prescriptions SET {} WHERE id=%s AND tenant_id=%s".format(
                             ", ".join("{}=%s".format(k) for k in update_fields.keys())
                         )
-            with connection.cursor() as cursor:
-                cursor.execute(update_query, list(update_fields.values()) + [prescription_id, account_id["tenant_id"]])
-                connection.commit()
+            cursor.execute(update_query, list(update_fields.values()) + [prescription_id, account_id["tenant_id"]])
+            connection.commit()
             
             put_test(connection)
             end_time = datetime.now()
@@ -112,9 +142,9 @@ class DeletePrescription(Resource):
             value = request.json
             prescription_id = value["id"]
 
-            with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM prescriptions WHERE id=%s AND tenant_id=%s", (prescription_id, account_id["tenant_id"]))
-                connection.commit()
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM prescriptions WHERE id=%s AND tenant_id=%s", (prescription_id, account_id["tenant_id"]))
+            connection.commit()
             
             put_test(connection)
             end_time = datetime.now()
