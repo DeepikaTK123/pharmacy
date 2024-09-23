@@ -52,6 +52,13 @@ const SidebarRoutes = [
     icon: <Icon as={MdList} width="20px" height="20px" color="inherit" />,
     sidebar: true,
   },
+  
+  {
+    layout: "/admin",
+    path: "/patientdetails/:id",
+    icon: <Icon as={MdList} width="20px" height="20px" color="inherit" />,
+    sidebar: true,
+  },
 ];
 
 const storedUserDataString = sessionStorage.getItem('userData');

@@ -48,6 +48,7 @@ const PharmacyBilling = () => {
     setLoading(true);
     try {
       const response = await getBillingRecords();
+      console.log(  response.data.data)
       const cleanedData = response.data.data.map(record => ({
         ...record,
         items: record.items.filter(item => item !== null)

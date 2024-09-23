@@ -20,60 +20,76 @@ class AddBillingRecord(Resource):
             cursor = connection.cursor()
             items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
 
-            cursor.execute("SELECT id FROM patients WHERE phone_number=%s and tenant_id=%s", (value.get("phoneNumber", ""), account_id["tenant_id"]))
+            # Insert or fetch patient record
+            cursor.execute("SELECT id FROM patients WHERE phone_number=%s and tenant_id=%s", 
+                           (value.get("phoneNumber", ""), account_id["tenant_id"]))
             patient_id = cursor.fetchone()
-            
+
             if not patient_id:
                 insert_patient_query = """
                 INSERT INTO patients(tenant_id, patient_no, name, phone_number, dob, gender, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """
                 patient_record_to_insert = (
-                    account_id["tenant_id"], value.get("patientNumber", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""),
-                    value.get("gender", ""), start_time, start_time
+                    account_id["tenant_id"], value.get("patientNumber", ""), value.get("patientName", ""), 
+                    value.get("phoneNumber", ""), value.get("dob", ""), value.get("gender", ""), start_time, start_time
                 )
                 cursor.execute(insert_patient_query, patient_record_to_insert)
                 patient_id = cursor.fetchone()[0]
             else:
                 patient_id = patient_id[0]
 
+            # Insert billing record
             insert_query = """
-            INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, items, tenant_id, age_year, age_month, gender, patient_number)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, 
+            last_updated, tenant_id, age_year, age_month, gender, patient_number)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """
             record_to_insert = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 
                 value.get("status", ""), value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), 
-                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(items), account_id.get('tenant_id', ""),
+                value.get("sgst", 0.00), value.get("total", 0.00), start_time, account_id.get('tenant_id', ""), 
                 value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", "")
             )
             cursor.execute(insert_query, record_to_insert)
             billing_id = cursor.fetchone()[0]
 
-            # Update quantities in medicines table
+            # Insert each item into billing_items
             for item in items:
+                insert_item_query = """
+                INSERT INTO billing_items (billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, 
+                manufactured_by, rate, cgst, sgst)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                item_values = (
+                    billing_id, item['type'], item['label'], item['price'], item['total'], item['quantity'], 
+                    item.get('batchNo'), item.get('expiryDate'), item.get('manufacturedBy'), item.get('rate'), 
+                    item.get('cgst', 0), item.get('sgst', 0)
+                )
+                cursor.execute(insert_item_query, item_values)
+
+                # Update quantities in medicines table
                 if item['type'] == 'medicine':
                     update_medicine_query = """
-                    UPDATE medicines
-                    SET quantity = quantity - %s
-                    WHERE id = %s AND quantity >= %s AND tenant_id=%s
+                    UPDATE medicines SET quantity = quantity - %s
+                    WHERE id = %s AND quantity >= %s AND tenant_id = %s
                     RETURNING quantity
                     """
                     cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"], account_id["tenant_id"]))
                     if cursor.rowcount == 0:
                         raise Exception(f"Insufficient quantity for medicine ID {item['value']}")
 
-            # Commit the transaction
+            # Commit transaction
             connection.commit()
-
             put_test(connection)
+
             return make_response(jsonify({"status": "success", "message": "Billing record added", "data": {"id": billing_id}}), 200)
+
         except Exception as e:
             if connection:
                 connection.rollback()
-            logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
-            logger.error(f"Exception: {str(e)}")
-            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+            logger.error(f"Error: {str(e)}")
+            return make_response(jsonify({"status": "error", "message": str(e)}), 500)
 
 class EditBillingRecord(Resource):
     @token_required
@@ -84,140 +100,153 @@ class EditBillingRecord(Resource):
             value = request.json
             billing_id = value["id"]
             cursor = connection.cursor()
-            print(value)
-            # Get the original billing record
-            cursor.execute("SELECT items FROM billing WHERE id=%s", (billing_id,))
-            original_record = cursor.fetchone()
-            original_items = original_record[0]
 
-            # Reverse the quantity deduction for original medicines
+            # Get original billing items
+            cursor.execute("SELECT id, item_type, quantity FROM billing_items WHERE billing_id = %s", (billing_id,))
+            original_items = cursor.fetchall()
+
+            # Reverse quantity changes for original medicines
             for item in original_items:
-                if item['type'] == 'medicine':
+                if item[1] == 'medicine':
                     update_medicine_query = """
-                    UPDATE medicines
-                    SET quantity = quantity + %s
-                    WHERE id = %s
+                    UPDATE medicines SET quantity = quantity + %s WHERE id = %s AND tenant_id = %s
                     """
-                    cursor.execute(update_medicine_query, (item["quantity"], item["value"]))
+                    cursor.execute(update_medicine_query, (item[2], item[0], account_id["tenant_id"]))
 
-            # Filter out items with zero quantity
-            updated_items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
-
-            # Update the patient record
-            update_patient_query = """
-            UPDATE patients SET patient_no=%s, name=%s, phone_number=%s, dob=%s, gender=%s, updated_at=%s
-            WHERE phone_number=%s AND tenant_id=%s
-            """
-            patient_record_to_update = (
-                value.get("patientNumber", ""), value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""),
-                value.get("gender", ""), start_time, value.get("phoneNumber", ""), account_id["tenant_id"]
-            )
-            cursor.execute(update_patient_query, patient_record_to_update)
-
-            # Update the billing record
+            # Update billing record
             update_query = """
-            UPDATE billing SET patient_name=%s, phone_number=%s, dob=%s, date=%s, status=%s, discount=%s, subtotal=%s, cgst=%s, sgst=%s, total=%s, last_updated=%s, items=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s, patient_number=%s
-            WHERE id=%s
+            UPDATE billing SET patient_name=%s, phone_number=%s, dob=%s, date=%s, status=%s, discount=%s, subtotal=%s, 
+            cgst=%s, sgst=%s, total=%s, last_updated=%s, tenant_id=%s, age_year=%s, age_month=%s, gender=%s, 
+            patient_number=%s WHERE id=%s
             """
             record_to_update = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 
                 value.get("status", ""), value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), 
-                value.get("sgst", 0.00), value.get("total", 0.00), start_time, json.dumps(updated_items), account_id.get('tenant_id', ""),
+                value.get("sgst", 0.00), value.get("total", 0.00), start_time, account_id.get('tenant_id', ""), 
                 value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", ""), billing_id
             )
             cursor.execute(update_query, record_to_update)
 
-            # Deduct the quantity for the new medicines
-            for item in updated_items:
+            # Delete existing billing items
+            cursor.execute("DELETE FROM billing_items WHERE billing_id = %s", (billing_id,))
+
+            # Insert updated items into billing_items
+            for item in value.get("items", []):
+                insert_item_query = """
+                INSERT INTO billing_items (billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, 
+                manufactured_by, rate, cgst, sgst)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                item_values = (
+                    billing_id, item['type'], item['label'], item['price'], item['total'], item['quantity'], 
+                    item.get('batchNo'), item.get('expiryDate'), item.get('manufacturedBy'), item.get('rate'), 
+                    item.get('cgst', 0), item.get('sgst', 0)
+                )
+                cursor.execute(insert_item_query, item_values)
+
+                # Deduct the updated quantities for medicines
                 if item['type'] == 'medicine':
                     update_medicine_query = """
-                    UPDATE medicines
-                    SET quantity = quantity - %s
-                    WHERE id = %s AND quantity >= %s
-                    RETURNING quantity
+                    UPDATE medicines SET quantity = quantity - %s WHERE id = %s AND quantity >= %s AND tenant_id = %s
                     """
-                    cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"]))
+                    cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"], account_id["tenant_id"]))
                     if cursor.rowcount == 0:
                         raise Exception(f"Insufficient quantity for medicine ID {item['value']}")
 
             # Commit the transaction
             connection.commit()
-
             put_test(connection)
-            return make_response(jsonify({"status": "success", "message": "Billing record updated", "data": ""}), 200)
+
+            return make_response(jsonify({"status": "success", "message": "Billing record updated"}), 200)
+
         except Exception as e:
             if connection:
                 connection.rollback()
-            logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
-            logger.error(f"Exception: {str(e)}")
-            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+            logger.error(f"Error: {str(e)}")
+            return make_response(jsonify({"status": "error", "message": str(e)}), 500)
 
 
 class DeleteBillingRecord(Resource):
     @token_required
     def post(account_id, self):
-        connection = None
         try:
-            start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value)
             billing_id = value["id"]
             cursor = connection.cursor()
 
-            # Get the original billing record
-            cursor.execute("SELECT items FROM billing WHERE id=%s", (billing_id,))
-            original_record = cursor.fetchone()
-            original_items = original_record[0]
+            # Get original billing items
+            cursor.execute("SELECT id, item_type, quantity FROM billing_items WHERE billing_id = %s", (billing_id,))
+            original_items = cursor.fetchall()
 
             # Reverse the quantity deduction for original medicines
             for item in original_items:
-                if item['type'] == 'medicine':
+                if item[1] == 'medicine':
                     update_medicine_query = """
-                    UPDATE medicines
-                    SET quantity = quantity + %s
-                    WHERE id = %s
+                    UPDATE medicines SET quantity = quantity + %s WHERE id = %s AND tenant_id = %s
                     """
-                    cursor.execute(update_medicine_query, (item["quantity"], item["value"]))
+                    cursor.execute(update_medicine_query, (item[2], item[0], account_id["tenant_id"]))
 
             # Delete the billing record
             cursor.execute("DELETE FROM billing WHERE id=%s", (billing_id,))
+            cursor.execute("DELETE FROM billing_items WHERE billing_id=%s", (billing_id,))
             connection.commit()
-            
+
             put_test(connection)
-            return make_response(jsonify({"status": "success", "message": "Billing record deleted", "data": ""}), 200)
+            return make_response(jsonify({"status": "success", "message": "Billing record deleted"}), 200)
+
         except Exception as e:
             if connection:
                 connection.rollback()
-            logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
-            logger.error(f"Exception: {str(e)}")
-            if connection:
-                put_test(connection)
-            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+            logger.error(f"Error: {str(e)}")
+            return make_response(jsonify({"status": "error", "message": str(e)}), 500)
 
 class GetBillingRecords(Resource):
     @token_required
     def get(account_id, self):
-        connection = None
         try:
             connection = get_test()
-            
             sql_select_query = """
-            SELECT id, patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, items, tenant_id, age_year, age_month, gender, patient_number FROM billing 
-            WHERE tenant_id=%s order by id desc
+            SELECT id, patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, 
+            tenant_id, age_year, age_month, gender, patient_number FROM billing 
+            WHERE tenant_id=%s ORDER BY id DESC
             """
-            df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
-            data_json = df.to_json(orient='records')
-            data = json.loads(data_json)
+            df_billing = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
+
+            # Get items for each billing record
+            billing_ids = tuple(df_billing['id'].tolist())
+            sql_items_query = """
+            SELECT billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, manufactured_by, rate, cgst, sgst 
+            FROM billing_items WHERE billing_id IN %s
+            """
+            df_items = pd.read_sql_query(sql_items_query, connection, params=[billing_ids])
+
+            # Combine the results
+            data = df_billing.to_dict(orient='records')  # Convert df_billing to a list of dicts
+            
+            for billing in data:
+                billing_id = billing['id']
+                
+                # Check if there are items for this billing_id
+                matching_items = df_items[df_items['billing_id'] == billing_id]
+                if not matching_items.empty:
+                    # Convert to dict if there are matching items
+                    billing['items'] = matching_items.to_dict(orient='records')
+                else:
+                    # Assign an empty list if no items are found
+                    billing['items'] = []
+
             put_test(connection)
             
+            # Return as JSON, not as a string
             return make_response(jsonify({"status": "success", "data": data}), 200)
+
         except Exception as e:
-            logger.error(f"Error in line: {e.__traceback__.tb_lineno}")
-            logger.error(f"Exception: {str(e)}")
+            logger.error(f"Error: {str(e)}")
             if connection:
                 put_test(connection)
-            return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
+            return make_response(jsonify({"status": "error", "message": str(e)}), 500)
+
 
 class GetPatientName(Resource):
     @token_required

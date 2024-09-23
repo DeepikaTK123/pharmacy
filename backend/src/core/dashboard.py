@@ -24,7 +24,7 @@ class GetDashboardCount(Resource):
             sql_select_query = f"""
                 SELECT 'medicines' AS table_name, COUNT(*) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
                 UNION ALL
-                SELECT 'medicines_total' AS table_name, COALESCE(SUM(mrp *quantity), 2) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
+                SELECT 'medicines_total' AS table_name, COALESCE(SUM(mrp *quantity), 0) AS row_count FROM public.medicines WHERE tenant_id = '{tenant_id}'
                 UNION ALL
                 SELECT 'billing' AS table_name, COUNT(*) AS row_count FROM public.billing WHERE tenant_id = '{tenant_id}'
                 UNION ALL

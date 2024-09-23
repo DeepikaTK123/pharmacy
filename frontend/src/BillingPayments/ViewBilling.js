@@ -176,7 +176,7 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
                 <Text><strong>Doctor:</strong> {userData.username}</Text>
                 <Text><strong>Invoice ID:</strong> {billingData.id}</Text>
                 {billingData.patient_number && (
-                  <Text><strong>Patient No.:</strong> {billingData.patient_number}</Text>
+                  <Text><strong>Patient No:</strong> {billingData.patient_number}</Text>
                 )}
                 <Text><strong>Date:</strong> {new Date(billingData.date).toLocaleString("en-US", {
                   day: "numeric",

@@ -29,6 +29,7 @@ import AddPatient from './AddPatient';
 import EditPatient from './EditPatient';
 import DeletePatient from './DeletePatient';
 import { getPatients, addPatient, updatePatient, deletePatient } from 'networks';
+import { useNavigate } from 'react-router-dom';
 
 const calculateAge = (dob) => {
   const birthDate = new Date(dob);
@@ -47,6 +48,7 @@ const Patients = () => {
   const toast = useToast();
   const addPatientModal = useDisclosure();
   const isSmallScreen = useBreakpointValue({ base: true, md: false });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPatients();
@@ -147,6 +149,9 @@ const Patients = () => {
     (patient.phone_number || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const viewPatientDetails = (patientId) => {
+    navigate(`/patientdetails/${patientId}`);
+  };
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
       <Flex flexDirection="column">
@@ -268,7 +273,7 @@ const Patients = () => {
                   </Thead>
                   <Tbody>
                     {filteredPatients.map((patient,index) => (
-                      <Tr key={patient.id}>
+                      <Tr key={patient.id} onClick={() => viewPatientDetails(patient.id)}>
                         <Td>{index+1}</Td>
                         <Td>{patient.patient_no}</Td>
                         <Td>{patient.name}</Td>

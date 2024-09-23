@@ -145,7 +145,6 @@ class GetMedicines(Resource):
 
             data_json = df.to_json(orient='records')
             data = json.loads(data_json)
-            
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time

@@ -9,6 +9,7 @@ import Supplier from "Supplier/Supplier";
 import Prescription from "Prescription/Prescription";
 import Services from "Services/Services";
 import Patients from "Patients/Patients";
+import PatientDetails from "Patients/PatientDetail";
 
 const LazyLoad = () => {
   useEffect(() => {
@@ -61,6 +62,8 @@ const getElementForRoute = (route) => {
       return <Services />;
     case "/patients":
       return <Patients/>;
+    case "/patientdetails/:id":
+      return <PatientDetails/>;
     default:
       return null;
   }

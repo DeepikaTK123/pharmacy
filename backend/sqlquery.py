@@ -1,8 +1,7 @@
 import psycopg2
 from psycopg2 import sql
 
-ahost="128.199.19.234"
-# ahost="localhost"
+ahost = "localhost"
 
 def create_table():
     conn = psycopg2.connect(
@@ -48,6 +47,7 @@ def create_table():
             total DECIMAL(10, 2) NOT NULL,
             rate DECIMAL(10, 2),
             profit DECIMAL(10, 2),
+            sold INT DEFAULT 0,
             tenant_id VARCHAR NOT NULL
         );
     '''
@@ -66,8 +66,7 @@ def create_table():
             cgst NUMERIC(10, 2),
             sgst NUMERIC(10, 2),
             total NUMERIC(10, 2),
-            last_updated TIMESTAMP,
-            items JSONB,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             tenant_id VARCHAR(255),
             age_year INT,
             age_month INT,
@@ -75,9 +74,31 @@ def create_table():
             patient_number VARCHAR(50),
             dob DATE
         );
-
     '''
     cursor.execute(billing_table)
+    conn.commit()
+
+    # New billing_items table to store individual items
+    billing_items_table = '''
+    CREATE TABLE IF NOT EXISTS billing_items (
+        id SERIAL PRIMARY KEY,
+        billing_id INT REFERENCES billing(id) ON DELETE CASCADE,
+        item_type VARCHAR(20),  -- 'service' or 'medicine'
+        label VARCHAR(255),     -- e.g. 'Consultation', 'Dolo'
+        price NUMERIC(10, 2),   -- price per unit
+        total NUMERIC(10, 2),   -- total price for this item
+        quantity INT,           -- quantity of the item (null for services)
+        batch_no VARCHAR(100),  -- batch number for medicine (null for services)
+        expiry_date DATE,       -- expiry date for medicine (null for services)
+        manufactured_by VARCHAR(255), -- Manufacturer for medicine (null for services)
+        rate NUMERIC(10, 2) DEFAULT 0,    -- rate per unit with default 0
+        cgst NUMERIC(5, 2) DEFAULT 0,     -- CGST for medicine with default 0
+        sgst NUMERIC(5, 2) DEFAULT 0      -- SGST for medicine with default 0
+    );
+'''
+
+
+    cursor.execute(billing_items_table)
     conn.commit()
 
     prescriptions = '''
@@ -145,12 +166,16 @@ def alter_table():
     )
     cursor = conn.cursor()
 
-    alter_medicines = '''
-       ALTER TABLE medicines
-ADD COLUMN sold INT DEFAULT 0;
+  
+
+    # Example to remove the JSONB field from billing table (after migrating data)
+    alter_billing = '''
+        ALTER TABLE billing
+        DROP COLUMN items;
     '''
-    cursor.execute(alter_medicines)
+    cursor.execute(alter_billing)
     conn.commit()
+
     conn.close()
     print("Tables altered successfully.")
 
