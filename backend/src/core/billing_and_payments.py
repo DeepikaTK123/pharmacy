@@ -17,6 +17,7 @@ class AddBillingRecord(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
+            print(value)
             cursor = connection.cursor()
             items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
 
@@ -58,15 +59,16 @@ class AddBillingRecord(Resource):
             for item in items:
                 insert_item_query = """
                 INSERT INTO billing_items (billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, 
-                manufactured_by, rate, cgst, sgst)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                manufactured_by, rate, cgst, sgst, item_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 item_values = (
                     billing_id, item['type'], item['label'], item['price'], item['total'], item['quantity'], 
                     item.get('batchNo'), item.get('expiryDate'), item.get('manufacturedBy'), item.get('rate'), 
-                    item.get('cgst', 0), item.get('sgst', 0)
+                    item.get('cgst', 0), item.get('sgst', 0), item.get('item_id')  # Include item_id here
                 )
                 cursor.execute(insert_item_query, item_values)
+
 
                 # Update quantities in medicines table
                 if item['type'] == 'medicine':
@@ -134,13 +136,13 @@ class EditBillingRecord(Resource):
             for item in value.get("items", []):
                 insert_item_query = """
                 INSERT INTO billing_items (billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, 
-                manufactured_by, rate, cgst, sgst)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                manufactured_by, rate, cgst, sgst, item_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 item_values = (
                     billing_id, item['type'], item['label'], item['price'], item['total'], item['quantity'], 
                     item.get('batchNo'), item.get('expiryDate'), item.get('manufacturedBy'), item.get('rate'), 
-                    item.get('cgst', 0), item.get('sgst', 0)
+                    item.get('cgst', 0), item.get('sgst', 0), item.get('item_id')  # Include item_id here
                 )
                 cursor.execute(insert_item_query, item_values)
 
@@ -207,34 +209,72 @@ class GetBillingRecords(Resource):
         try:
             connection = get_test()
             sql_select_query = """
-            SELECT id, patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, last_updated, 
-            tenant_id, age_year, age_month, gender, patient_number FROM billing 
-            WHERE tenant_id=%s ORDER BY id DESC
-            """
-            df_billing = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
+           SELECT 
+            b.id AS id, 
+            b.patient_name, 
+            b.phone_number, 
+            b.date, 
+            b.status, 
+            b.subtotal, 
+            b.total, 
+            b.discount,
+            json_agg(
+                json_build_object(
+                    'item_type', bi.item_type, 
+                    'label', bi.label, 
+                    'price', bi.price, 
+                    'total', bi.total, 
+                    'quantity', bi.quantity, 
+                    'batch_no', bi.batch_no, 
+                    'expiry_date', bi.expiry_date, 
+                    'manufactured_by', bi.manufactured_by, 
+                    'cgst', bi.cgst, 
+                    'sgst', bi.sgst,
+                    'item_id', bi.item_id  
+                )
+            ) AS billing_items
+        FROM 
+            billing b
+        JOIN 
+            billing_items bi 
+        ON 
+            b.id = bi.billing_id
+        WHERE 
+            b.tenant_id = %s  -- Replace with your specific tenant_id
+        GROUP BY 
+            b.id
+        ORDER BY 
+            b.id DESC;  -- Ordering by billing_id in descending order
 
+            """
+            df = pd.read_sql_query(sql_select_query, connection, params=[account_id['tenant_id']])
+            data_json = df.to_json(orient='records')
+            data = json.loads(data_json)
             # Get items for each billing record
-            billing_ids = tuple(df_billing['id'].tolist())
-            sql_items_query = """
-            SELECT billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, manufactured_by, rate, cgst, sgst 
-            FROM billing_items WHERE billing_id IN %s
-            """
-            df_items = pd.read_sql_query(sql_items_query, connection, params=[billing_ids])
+            # billing_ids = tuple(df_billing['id'].tolist())
+            # sql_items_query = """
+            # SELECT billing_id, item_type, label, price, total, quantity, batch_no, expiry_date, manufactured_by, rate, cgst, sgst 
+            # FROM billing_items WHERE billing_id IN %s
+            # """
+            # # if not billing_ids:
+            # #     return make_response(jsonify({"status": "success", "data": []}), 200)
 
-            # Combine the results
-            data = df_billing.to_dict(orient='records')  # Convert df_billing to a list of dicts
-            
-            for billing in data:
-                billing_id = billing['id']
+            # df_items = pd.read_sql_query(sql_items_query, connection, params=[billing_ids])
+
+            # # Combine the results
+            # data = df_billing.to_dict(orient='records')  # Convert df_billing to a list of dicts
+            # print(data)
+            # for billing in data:
+            #     billing_id = billing['id']
                 
-                # Check if there are items for this billing_id
-                matching_items = df_items[df_items['billing_id'] == billing_id]
-                if not matching_items.empty:
-                    # Convert to dict if there are matching items
-                    billing['items'] = matching_items.to_dict(orient='records')
-                else:
-                    # Assign an empty list if no items are found
-                    billing['items'] = []
+            #     # Check if there are items for this billing_id
+            #     matching_items = df_items[df_items['billing_id'] == billing_id]
+            #     if not matching_items.empty:
+            #         # Convert to dict if there are matching items
+            #         billing['items'] = matching_items.to_dict(orient='records')
+            #     else:
+            #         # Assign an empty list if no items are found
+            #         billing['items'] = []
 
             put_test(connection)
             

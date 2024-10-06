@@ -72,7 +72,6 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
         }));
         setMedicines(medicinesData);
       } catch (error) {
-        console.error('Error fetching medicines:', error);
         toast({
           title: 'Error fetching medicines.',
           description: 'Unable to fetch medicines. Please try again later.',
@@ -94,7 +93,6 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
         }));
         setServices(servicesData);
       } catch (error) {
-        console.error('Error fetching services:', error);
         toast({
           title: 'Error fetching services.',
           description: 'Unable to fetch services. Please try again later.',
@@ -159,7 +157,6 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
           }));
         }
       } catch (error) {
-        console.error('Error fetching patient name:', error);
         setNewBilling(prev => ({
           ...prev,
           [name]: value,
@@ -193,6 +190,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
         total: itemData?.total,
         cgst: itemData?.cgst || 0,
         sgst: itemData?.sgst || 0,
+        item_id: itemData?.value 
       };
     });
 

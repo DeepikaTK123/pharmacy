@@ -39,6 +39,23 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
 
   if (!billingData) return null;
 
+  // Calculate the average CGST and SGST
+  const calculateAverageTaxes = () => {
+    const totalItems = billingData.billing_items.length;
+    const totalCgst = billingData.billing_items.reduce((acc, item) => acc + item.cgst, 0);
+    const totalSgst = billingData.billing_items.reduce((acc, item) => acc + item.sgst, 0);
+
+    const avgCgst = totalCgst / totalItems;
+    const avgSgst = totalSgst / totalItems;
+
+    return {
+      avgCgst: avgCgst.toFixed(2), // rounding to two decimals
+      avgSgst: avgSgst.toFixed(2),
+    };
+  };
+
+  const { avgCgst, avgSgst } = calculateAverageTaxes();
+
   const handleDownloadInvoice = async () => {
     const invoice = invoiceRef.current;
     const canvas = await html2canvas(invoice, { scale: 2 });
@@ -200,12 +217,12 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {billingData.items.map((item, index) => (
+                  {billingData.billing_items.map((item, index) => (
                     <Tr key={index}>
                       <Td>{item.label}</Td>
-                      <Td>{item.batchNo || 'N/A'}</Td>
-                      <Td>{item.expiryDate || 'N/A'}</Td>
-                      <Td>{item.manufacturedBy || 'N/A'}</Td>
+                      <Td>{item.batch_no || 'N/A'}</Td>
+                      <Td>{item.expiry_date || 'N/A'}</Td>
+                      <Td>{item.manufactured_by || 'N/A'}</Td>
                       <Td>{item.quantity || 'N/A'}</Td>
                       <Td>{`₹${item.price}`}</Td>
                       <Td>{`₹${(item.price * (item.quantity || 1)).toFixed(2)}`}</Td>
@@ -218,8 +235,8 @@ const ViewPharmacyBilling = ({ isOpen, onClose, billingData }) => {
             <Flex justify="flex-end">
               <Box textAlign="right">
                 <Text><strong>Subtotal:</strong> {`₹${billingData.subtotal}`}</Text>
-                <Text><strong>CGST:</strong> {`₹${billingData.cgst}`}</Text>
-                <Text><strong>SGST:</strong> {`₹${billingData.sgst}`}</Text>
+                <Text><strong>Average CGST:</strong> {`${avgCgst}%`}</Text>
+                <Text><strong>Average SGST:</strong> {`${avgSgst}%`}</Text>
                 <Text><strong>Discount:</strong> {`${billingData.discount}%`}</Text>
                 <Text fontSize="lg" fontWeight="bold"><strong>Total:</strong> {`₹${billingData.total}`}</Text>
               </Box>

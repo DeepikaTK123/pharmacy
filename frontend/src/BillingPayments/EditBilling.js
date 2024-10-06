@@ -27,21 +27,23 @@ import {
   Select as ChakraSelect,
 } from '@chakra-ui/react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
-import { getMedicines, getServices, addService } from 'networks';
+import { getMedicines, getPatientName, addService, getServices } from 'networks';
 
 const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
+  const today = new Date().toISOString().split('T')[0];
+
   const [billing, setBilling] = useState({
     patientName: '',
+    patientNumber: '',
     phoneNumber: '',
     dob: '',
     ageYear: null,
     ageMonth: null,
-    gender: null,
+    gender: '',
     items: [],
-    date: '',
+    date: today,
     status: 'Paid',
     discount: 0,
-    patientNumber: '',
   });
 
   const [medicines, setMedicines] = useState([]);
@@ -51,21 +53,23 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   const toast = useToast();
 
   useEffect(() => {
+    console.log(updateBillingProp);
     const fetchMedicines = async () => {
       try {
         const response = await getMedicines();
+        console.log(response.data.data)
         const medicinesData = response.data.data.map(med => ({
           value: med.id,
           label: med.name,
           quantityAvailable: med.quantity,
-          mrp: med.price,
+          mrp: med.mrp,
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
           manufacturedBy: med.manufactured_by,
           cgst: med.cgst,
           sgst: med.sgst,
           rate: med.rate,
-          total: med.total
+          total: med.total,
         }));
         setMedicines(medicinesData);
       } catch (error) {
@@ -83,6 +87,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     const fetchServices = async () => {
       try {
         const response = await getServices();
+        console.log(response.data.data)
         const servicesData = response.data.data.map(service => ({
           value: service.id,
           label: service.name,
@@ -107,18 +112,48 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   }, [toast]);
 
   useEffect(() => {
-    setBilling({
-      ...updateBillingProp,
-      patientNumber: updateBillingProp.patientNumber || updateBillingProp.patient_number || '',
-      patientName: updateBillingProp.patientName || updateBillingProp.patient_name || '',
-      phoneNumber: updateBillingProp.phoneNumber || updateBillingProp.phone_number || '',
-      dob: new Date(updateBillingProp.dob).toISOString().split('T')[0] || '',
-      date: new Date(updateBillingProp.date).toISOString().split('T')[0],
-      ageYear: updateBillingProp.age_year || null,
-      ageMonth: updateBillingProp.age_month || null,
-      gender: updateBillingProp.gender || '',
-      items: updateBillingProp.items || [],
-    });
+    const fetchPatientDetails = async () => {
+      if (updateBillingProp.phone_number) {
+        try {
+          const response = await getPatientName(updateBillingProp.phone_number);
+          if (response.data.status === 'success' && response.data.data.length > 0) {
+            const patient = response.data.data[0];
+            const dobDate = new Date(patient.dob);
+            const dobString = dobDate.toISOString().split('T')[0];
+            const { years, months } = calculateAge(dobDate);
+            setBilling(prev => ({
+              ...prev,
+              patientName: patient.name,
+              patientNumber: patient.patient_no,
+              phoneNumber: patient.phone_number,
+              dob: dobString,
+              ageYear: years,
+              ageMonth: months,
+              gender: patient.gender,
+              items: updateBillingProp.billing_items || [],
+              date: new Date(updateBillingProp.date).toISOString().split('T')[0],
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching patient name:', error);
+          setBilling({
+            patientName: '',
+            patientNumber: '',
+            phoneNumber: updateBillingProp.phone_number || '',
+            dob: '',
+            ageYear: null,
+            ageMonth: null,
+            gender: '',
+            items: [],
+            date: today,
+            status: 'Paid',
+            discount: 0,
+          });
+        }
+      }
+    };
+
+    fetchPatientDetails();
   }, [updateBillingProp]);
 
   const calculateAge = (dob) => {
@@ -128,12 +163,12 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     const monthDiff = today.getMonth() - birthDate.getMonth();
     const dayDiff = today.getDate() - birthDate.getDate();
 
-    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-      age--;
+    if (age < 0 || (age === 0 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
+      age = 0;
     }
 
     const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
-    
+
     return { years: age, months };
   };
 
@@ -142,9 +177,9 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
 
     if (name === 'dob') {
       const { years, months } = calculateAge(value);
-      setBilling({ ...billing, [name]: value, ageYear: years, ageMonth: months });
+      setBilling(prev => ({ ...prev, [name]: value, ageYear: years || 0, ageMonth: months || 0 }));
     } else {
-      setBilling({ ...billing, [name]: value });
+      setBilling(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -155,9 +190,9 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       return existingItem || {
         ...option,
         type,
-        quantity: type === 'medicine' ? 0 : 1, 
+        quantity: type === 'medicine' ? 1 : 1, // Default 1 for both types
         quantityAvailable: itemData?.quantityAvailable || 1,
-        mrp: itemData?.mrp || itemData?.price,
+        price: itemData?.mrp || itemData?.price,
         total: itemData?.total,
         cgst: itemData?.cgst || 0,
         sgst: itemData?.sgst || 0,
@@ -172,7 +207,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     const updatedItems = billing.items.map(it => {
       if (it.value === item.value && it.type === item.type) {
         const newQuantity = it.quantity + change;
-        const updatedQuantityAvailable = it.quantityAvailable - change;
+        const updatedQuantityAvailable = it.quantityAvailable - newQuantity;
         return {
           ...it,
           quantity: Math.max(0, newQuantity),
@@ -213,15 +248,14 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
   };
 
   const calculateSubtotal = () => {
-    const itemsSubtotal = billing.items.reduce((total, item) => {
-      return total + (item.price * (item.quantity || 1));
+    const subtotal = billing.items.reduce((total, item) => {
+      return total + item.price * item.quantity;
     }, 0);
-
-    return itemsSubtotal.toFixed(2);
+    return subtotal.toFixed(2);
   };
 
   const calculateGST = (subtotal, rate) => {
-    return (subtotal * rate / 100).toFixed(2);
+    return ((subtotal * rate) / 100).toFixed(2);
   };
 
   const calculateDiscountAmount = () => {
@@ -257,16 +291,16 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
       const total = calculateTotal();
       const discount = parseFloat(billing.discount || 0);
 
-      const updatedBillingData = {
+      const billingPayload = {
         ...billing,
         subtotal: subtotal,
-        sgst: sgstAmount.toFixed(2),
-        cgst: cgstAmount.toFixed(2),
+        cgst: sgstAmount.toFixed(2),
+        sgst: cgstAmount.toFixed(2),
         discount: discount.toFixed(2),
         total: total,
       };
 
-      updateBilling(updatedBillingData);
+      updateBilling(billingPayload);
       onClose();
     } else {
       toast({
@@ -283,7 +317,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="6xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Update Billing Record</ModalHeader>
+        <ModalHeader>Edit Billing Record</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <FormControl id="date" mb={3}>
@@ -302,6 +336,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               value={billing.phoneNumber}
               onChange={handleInputChange}
               placeholder="Enter phone number"
+              readOnly // Disable editing for phone number
             />
           </FormControl>
           <FormControl id="patientName" mb={3}>
@@ -311,15 +346,17 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               value={billing.patientName}
               onChange={handleInputChange}
               placeholder="Enter patient name"
+              readOnly // Disable editing for patient name
             />
           </FormControl>
           <FormControl id="patientNumber" mb={3}>
-            <FormLabel>Patient No.</FormLabel>
+            <FormLabel>Patient Number</FormLabel>
             <Input
               name="patientNumber"
               value={billing.patientNumber}
               onChange={handleInputChange}
               placeholder="Enter patient number"
+              readOnly // Disable editing for patient number
             />
           </FormControl>
           <FormControl id="dob" mb={3}>
@@ -329,6 +366,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               name="dob"
               value={billing.dob}
               onChange={handleInputChange}
+              readOnly // Disable editing for dob
             />
           </FormControl>
           <FormControl id="age" mb={3}>
@@ -374,7 +412,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Select
               isMulti
               name="services"
-              value={billing.items.filter(item => item.type === 'service')}
+              value={billing.items.filter(item => item.item_type === 'service')} // Selected services
               onChange={(selectedOptions) => handleItemChange(selectedOptions, 'service')}
               options={services}
               placeholder="Select services"
@@ -412,7 +450,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Select
               isMulti
               name="medicines"
-              value={billing.items.filter(item => item.type === 'medicine')}
+              value={billing.items.filter(item => item.item_type === 'medicine')} // Selected medicines
               onChange={(selectedOptions) => handleItemChange(selectedOptions, 'medicine')}
               options={medicines}
               placeholder="Select medicines"
@@ -435,7 +473,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                   <Th width="10%">Expiry Date</Th>
                   <Th width="10%">Manufactured By</Th>
                   <Th width="8%">Quantity</Th>
-                  <Th width="8%">Price (₹)</Th>
+                  <Th width="8%">MRP (₹)</Th>
                   <Th width="8%">CGST (%)</Th>
                   <Th width="8%">SGST (%)</Th>
                   <Th width="8%">Total (₹)</Th>
@@ -471,14 +509,14 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                           aria-label="Increase quantity"
                           size="sm"
                           ml={2}
-                          isDisabled={item.quantityAvailable <= 0}
+                          isDisabled={item.quantity >= item.originalQuantity}
                         />
                       </Flex>
                     </Td>
-                    <Td>{item.price}</Td>
+                    <Td>{item.price.toFixed(2)}</Td>
                     <Td>{item.cgst}</Td>
                     <Td>{item.sgst}</Td>
-                    <Td>{(item.total * (item.quantity || 1)).toFixed(2)}</Td>
+                    <Td>{(item.price * item.quantity).toFixed(2)}</Td>
                   </Tr>
                 ))}
               </Tbody>

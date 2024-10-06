@@ -39,7 +39,7 @@ def create_table():
             name VARCHAR(255) NOT NULL,
             batch_no VARCHAR(100) NOT NULL,
             manufactured_by VARCHAR(255) NOT NULL,
-            quantity INT NOT NULL,
+            quantity BIGINT NOT NULL,
             expiry_date DATE NOT NULL,
             mrp DECIMAL(10, 2) NOT NULL,
             cgst DECIMAL(5, 2) NOT NULL,
@@ -47,7 +47,7 @@ def create_table():
             total DECIMAL(10, 2) NOT NULL,
             rate DECIMAL(10, 2),
             profit DECIMAL(10, 2),
-            sold INT DEFAULT 0,
+            sold BIGINT DEFAULT 0,
             tenant_id VARCHAR NOT NULL
         );
     '''
@@ -68,8 +68,8 @@ def create_table():
             total NUMERIC(10, 2),
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             tenant_id VARCHAR(255),
-            age_year INT,
-            age_month INT,
+            age_year BIGINT,
+            age_month BIGINT,
             gender VARCHAR(10),
             patient_number VARCHAR(50),
             dob DATE
@@ -82,12 +82,13 @@ def create_table():
     billing_items_table = '''
     CREATE TABLE IF NOT EXISTS billing_items (
         id SERIAL PRIMARY KEY,
-        billing_id INT REFERENCES billing(id) ON DELETE CASCADE,
+        billing_id BIGINT REFERENCES billing(id) ON DELETE CASCADE,
+        item_id BIGINT,
         item_type VARCHAR(20),  -- 'service' or 'medicine'
         label VARCHAR(255),     -- e.g. 'Consultation', 'Dolo'
         price NUMERIC(10, 2),   -- price per unit
         total NUMERIC(10, 2),   -- total price for this item
-        quantity INT,           -- quantity of the item (null for services)
+        quantity BIGINT,           -- quantity of the item (null for services)
         batch_no VARCHAR(100),  -- batch number for medicine (null for services)
         expiry_date DATE,       -- expiry date for medicine (null for services)
         manufactured_by VARCHAR(255), -- Manufacturer for medicine (null for services)
