@@ -55,7 +55,6 @@ const AlertsModal = ({ isOpen, onClose }) => {
       setAlerts(response.data.data); // Update the state with fetched alerts
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching alerts:', error);
       setLoading(false);
     }
   };
@@ -74,7 +73,6 @@ const AlertsModal = ({ isOpen, onClose }) => {
         fetchAlerts()
         setQuantity(''); // Reset the input
       } catch (error) {
-        console.error('Error creating alert:', error);
       }
     }
   };
@@ -94,7 +92,6 @@ const AlertsModal = ({ isOpen, onClose }) => {
         setExpiryValue(''); // Reset the input
         setExpiryUnit('days'); // Reset the dropdown
       } catch (error) {
-        console.error('Error creating expiry alert:', error);
       }
     }
   };
@@ -106,7 +103,6 @@ const AlertsModal = ({ isOpen, onClose }) => {
       await apiDeleteAlert(alertToDelete.id); // Call the API to delete the alert
       fetchAlerts()
     } catch (error) {
-      console.error('Error deleting alert:', error);
     }
   };
 

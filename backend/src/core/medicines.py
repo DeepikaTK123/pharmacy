@@ -8,7 +8,6 @@ from ..decode.user_decode import token_required
 import json
 from loguru import logger
 
-# Blueprint and API setup
 medicines = Blueprint("medicines", __name__)
 api = Api(medicines)
 
@@ -207,7 +206,6 @@ class GetMedicines(Resource):
                             medicine['expiryColor'] = alert['color']
                             break  # Use the first matching alert (lowest value)
 
-            print(data)
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time
@@ -224,7 +222,6 @@ class CreateAlert(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value)
             # Insert new alert with label and value
             insert_query = """
             INSERT INTO alerts(type, value, label, color, tenant_id)

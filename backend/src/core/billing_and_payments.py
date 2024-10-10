@@ -100,7 +100,6 @@ class EditBillingRecord(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value  )
             billing_id = value["id"]
             cursor = connection.cursor()
 

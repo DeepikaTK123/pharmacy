@@ -185,7 +185,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
         const medicineData = item.item_type === "medicine"
           ? medicines.find((med) => med.value === item.item_id)
           : null;
-console.log(medicineData)
         return {
           ...item,
           type: item.item_type,
