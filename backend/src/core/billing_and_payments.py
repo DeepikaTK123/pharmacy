@@ -1,3 +1,4 @@
+import sys
 from flask import Blueprint, request, jsonify, make_response
 from flask_restful import Api, Resource
 from datetime import datetime
@@ -17,7 +18,6 @@ class AddBillingRecord(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value)
             cursor = connection.cursor()
             items = [item for item in value.get("items", []) if item.get("quantity", 0) > 0]
 
@@ -100,6 +100,7 @@ class EditBillingRecord(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
+            print(value  )
             billing_id = value["id"]
             cursor = connection.cursor()
 
@@ -141,7 +142,7 @@ class EditBillingRecord(Resource):
                 """
                 item_values = (
                     billing_id, item['type'], item['label'], item['price'], item['total'], item['quantity'], 
-                    item.get('batchNo'), item.get('expiryDate'), item.get('manufacturedBy'), item.get('rate'), 
+                    item.get('batchNo'), item.get('expiryDate') if item.get('expiryDate') else None, item.get('manufacturedBy'), item.get('rate'), 
                     item.get('cgst', 0), item.get('sgst', 0), item.get('item_id')  # Include item_id here
                 )
                 cursor.execute(insert_item_query, item_values)
@@ -149,11 +150,11 @@ class EditBillingRecord(Resource):
                 # Deduct the updated quantities for medicines
                 if item['type'] == 'medicine':
                     update_medicine_query = """
-                    UPDATE medicines SET quantity = quantity - %s WHERE id = %s AND quantity >= %s AND tenant_id = %s
+                    UPDATE medicines SET quantity = %s WHERE id = %s  AND tenant_id = %s
                     """
-                    cursor.execute(update_medicine_query, (item["quantity"], item["value"], item["quantity"], account_id["tenant_id"]))
+                    cursor.execute(update_medicine_query, (item["quantityAvailable"], item["item_id"], account_id["tenant_id"]))
                     if cursor.rowcount == 0:
-                        raise Exception(f"Insufficient quantity for medicine ID {item['value']}")
+                        raise Exception(f"Insufficient quantity for medicine ID {item['item_id']}")
 
             # Commit the transaction
             connection.commit()
@@ -164,6 +165,9 @@ class EditBillingRecord(Resource):
         except Exception as e:
             if connection:
                 connection.rollback()
+            exception_type, exception_object, exception_traceback = sys.exc_info()
+            line_number = exception_traceback.tb_lineno
+            logger.error("Error in line: " + str(line_number))
             logger.error(f"Error: {str(e)}")
             return make_response(jsonify({"status": "error", "message": str(e)}), 500)
 
@@ -262,8 +266,7 @@ class GetBillingRecords(Resource):
             # df_items = pd.read_sql_query(sql_items_query, connection, params=[billing_ids])
 
             # # Combine the results
-            # data = df_billing.to_dict(orient='records')  # Convert df_billing to a list of dicts
-            # print(data)
+            # data = df_billing.to_dict(orient='records') 
             # for billing in data:
             #     billing_id = billing['id']
                 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import Select from 'react-select';
+import React, { useState, useEffect } from "react";
+import Select from "react-select";
 import {
   Modal,
   ModalOverlay,
@@ -25,43 +25,113 @@ import {
   Divider,
   HStack,
   Select as ChakraSelect,
-} from '@chakra-ui/react';
-import { FaPlus, FaMinus } from 'react-icons/fa';
-import { getMedicines, getPatientName, addService, getServices } from 'networks';
+} from "@chakra-ui/react";
+import { FaPlus, FaMinus } from "react-icons/fa";
+import {
+  getMedicines,
+  getPatientName,
+  updateBillingRecord,
+  getServices,
+} from "networks";
 
 const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
-  const today = new Date().toISOString().split('T')[0];
-
   const [billing, setBilling] = useState({
-    patientName: '',
-    patientNumber: '',
-    phoneNumber: '',
-    dob: '',
-    ageYear: null,
-    ageMonth: null,
-    gender: '',
-    items: [],
-    date: today,
-    status: 'Paid',
-    discount: 0,
+    patientName: updateBillingProp.patient_name,
+    id: updateBillingProp.id,
+    phoneNumber: updateBillingProp.phone_number,
+    items: [], // Initialize as an empty array first
+    dob: updateBillingProp.dob || "",  
+    date: new Date(updateBillingProp.date).toISOString().split("T")[0],
+    status: updateBillingProp.status,
+    discount: updateBillingProp.discount,
+    ageYear: 0,
+    ageMonth: 0,
   });
 
   const [medicines, setMedicines] = useState([]);
   const [services, setServices] = useState([]);
-  const [newService, setNewService] = useState({ name: '', price: '' });
+  const [newService, setNewService] = useState({ name: "", price: "" });
   const [isAddingService, setIsAddingService] = useState(false);
   const toast = useToast();
 
+  // Helper function to calculate the age
+  const calculateAge = (dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age--;
+    }
+
+    const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
+    return { years: age, months };
+  };
   useEffect(() => {
-    console.log(updateBillingProp);
+    const fetchPatientDetails = async () => {
+      if (updateBillingProp.phone_number.length === 10) {
+        try {
+          const response = await getPatientName(updateBillingProp.phone_number);
+          if (
+            response.data.status === "success" &&
+            response.data.data.length > 0
+          ) {
+            const patient = response.data.data[0];
+            const dobDate = new Date(patient.dob);
+            const dobString = dobDate.toISOString().split("T")[0];
+            const { years, months } = calculateAge(dobDate);
+
+            setBilling((prev) => ({
+              ...prev,
+              patientName: patient.name,
+              patientNumber: patient.patient_no,
+              phoneNumber: patient.phone_number,
+              dob: dobString,
+              ageYear: years,
+              ageMonth: months,
+              gender: patient.gender,
+            }));
+          } else {
+            setBilling((prev) => ({
+              ...prev,
+              patientName: "",
+              patientNumber: "",
+              dob: "",
+              ageYear: null,
+              ageMonth: null,
+              gender: "",
+            }));
+          }
+        } catch (error) {
+          setBilling((prev) => ({
+            ...prev,
+            patientName: "",
+            patientNumber: "",
+            dob: "",
+            ageYear: null,
+            ageMonth: null,
+            gender: "",
+          }));
+        }
+      }
+    };
+
+    if (updateBillingProp.phone_number.length === 10) {
+      fetchPatientDetails();
+    }
+  }, []);
+  // Fetch medicines and services
+  useEffect(() => {
     const fetchMedicines = async () => {
       try {
         const response = await getMedicines();
-        console.log(response.data.data)
-        const medicinesData = response.data.data.map(med => ({
+        const medicinesData = response.data.data.map((med) => ({
           value: med.id,
           label: med.name,
           quantityAvailable: med.quantity,
+          originalQuantity: med.quantity,
           mrp: med.mrp,
           batchNo: med.batch_no,
           expiryDate: new Date(med.expiry_date).toLocaleDateString("en-US"),
@@ -73,11 +143,10 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
         }));
         setMedicines(medicinesData);
       } catch (error) {
-        console.error('Error fetching medicines:', error);
         toast({
-          title: 'Error fetching medicines.',
-          description: 'Unable to fetch medicines. Please try again later.',
-          status: 'error',
+          title: "Error fetching medicines.",
+          description: "Unable to fetch medicines. Please try again later.",
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
@@ -87,8 +156,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     const fetchServices = async () => {
       try {
         const response = await getServices();
-        console.log(response.data.data)
-        const servicesData = response.data.data.map(service => ({
+        const servicesData = response.data.data.map((service) => ({
           value: service.id,
           label: service.name,
           price: service.price,
@@ -96,11 +164,10 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
         }));
         setServices(servicesData);
       } catch (error) {
-        console.error('Error fetching services:', error);
         toast({
-          title: 'Error fetching services.',
-          description: 'Unable to fetch services. Please try again later.',
-          status: 'error',
+          title: "Error fetching services.",
+          description: "Unable to fetch services. Please try again later.",
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
@@ -111,140 +178,149 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     fetchServices();
   }, [toast]);
 
+  // Initialize billing items once medicines are fetched
   useEffect(() => {
-    const fetchPatientDetails = async () => {
-      if (updateBillingProp.phone_number) {
-        try {
-          const response = await getPatientName(updateBillingProp.phone_number);
-          if (response.data.status === 'success' && response.data.data.length > 0) {
-            const patient = response.data.data[0];
-            const dobDate = new Date(patient.dob);
-            const dobString = dobDate.toISOString().split('T')[0];
-            const { years, months } = calculateAge(dobDate);
-            setBilling(prev => ({
-              ...prev,
-              patientName: patient.name,
-              patientNumber: patient.patient_no,
-              phoneNumber: patient.phone_number,
-              dob: dobString,
-              ageYear: years,
-              ageMonth: months,
-              gender: patient.gender,
-              items: updateBillingProp.billing_items || [],
-              date: new Date(updateBillingProp.date).toISOString().split('T')[0],
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching patient name:', error);
-          setBilling({
-            patientName: '',
-            patientNumber: '',
-            phoneNumber: updateBillingProp.phone_number || '',
-            dob: '',
+    if (medicines.length > 0) {
+      const initializedItems = updateBillingProp.billing_items.map((item) => {
+        const medicineData = item.item_type === "medicine"
+          ? medicines.find((med) => med.value === item.item_id)
+          : null;
+console.log(medicineData)
+        return {
+          ...item,
+          type: item.item_type,
+          quantityAvailable: medicineData ? medicineData.quantityAvailable : item.quantity,
+          originalQuantity: item.quantity,
+          price: item.price,
+          total: item.total,
+          batchNo: medicineData ? medicineData.batchNo:"",
+          manufacturedBy: medicineData ? medicineData.manufacturedBy:"",
+          expiryDate: medicineData ?(medicineData.expiryDate ? new Date(medicineData.expiryDate).toLocaleDateString("en-US"):"") : "",
+        };
+      });
+      
+      setBilling((prevBilling) => ({ ...prevBilling, items: initializedItems }));
+    }
+  }, [medicines, updateBillingProp.billing_items]);
+
+  const handleInputChange = async (e) => {
+    const { name, value } = e.target;
+    if (name === "phoneNumber" && value.length >= 10) {
+      try {
+        const response = await getPatientName(value);
+        if (response.data.status === "success" && response.data.data.length > 0) {
+          const patient = response.data.data[0];
+          const dobDate = new Date(patient.dob);
+          const dobString = dobDate.toISOString().split("T")[0];
+          const { years, months } = calculateAge(dobDate);
+          setBilling((prev) => ({
+            ...prev,
+            patientName: patient.name,
+            patientNumber: patient.patient_no,
+            phoneNumber: patient.phone_number,
+            dob: dobString,
+            ageYear: years,
+            ageMonth: months,
+            gender: patient.gender,
+          }));
+        } else {
+          setBilling((prev) => ({
+            ...prev,
+            [name]: value,
+            patientName: "",
+            patientNumber: "",
+            dob: "",
             ageYear: null,
             ageMonth: null,
-            gender: '',
-            items: [],
-            date: today,
-            status: 'Paid',
-            discount: 0,
-          });
+            gender: "",
+          }));
         }
+      } catch (error) {
+        setBilling((prev) => ({
+          ...prev,
+          [name]: value,
+          patientName: "",
+          patientNumber: "",
+          dob: "",
+          ageYear: null,
+          ageMonth: null,
+          gender: "",
+        }));
       }
-    };
-
-    fetchPatientDetails();
-  }, [updateBillingProp]);
-
-  const calculateAge = (dob) => {
-    const today = new Date();
-    const birthDate = new Date(dob);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    const dayDiff = today.getDate() - birthDate.getDate();
-
-    if (age < 0 || (age === 0 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)))) {
-      age = 0;
-    }
-
-    const months = (monthDiff < 0 ? 12 + monthDiff : monthDiff) + (dayDiff < 0 ? -1 : 0);
-
-    return { years: age, months };
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'dob') {
+    } else if (name === "dob") {
       const { years, months } = calculateAge(value);
-      setBilling(prev => ({ ...prev, [name]: value, ageYear: years || 0, ageMonth: months || 0 }));
+      setBilling((prev) => ({
+        ...prev,
+        [name]: value,
+        ageYear: years || 0,
+        ageMonth: months || 0,
+      }));
     } else {
-      setBilling(prev => ({ ...prev, [name]: value }));
+      setBilling((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleItemChange = (selectedOptions, type) => {
-    const updatedItems = selectedOptions.map(option => {
-      const existingItem = billing.items.find(item => item.value === option.value && item.type === type);
-      const itemData = type === 'medicine' ? medicines.find(med => med.value === option.value) : services.find(serv => serv.value === option.value);
-      return existingItem || {
-        ...option,
-        type,
-        quantity: type === 'medicine' ? 1 : 1, // Default 1 for both types
-        quantityAvailable: itemData?.quantityAvailable || 1,
-        price: itemData?.mrp || itemData?.price,
-        total: itemData?.total,
-        cgst: itemData?.cgst || 0,
-        sgst: itemData?.sgst || 0,
-      };
+    const updatedItems = selectedOptions.map((option) => {
+      const itemData =
+        type === "medicine"
+          ? medicines.find((med) => med.value === option.value)
+          : services.find((serv) => serv.value === option.value);
+
+      const existingItem = billing.items.find(
+        (item) => item.item_id === option.value && item.type === type
+      );
+
+      return (
+        existingItem || {
+          ...option,
+          type,
+          quantity: type === "medicine" ? 0 : 1,
+          quantityAvailable: itemData?.quantityAvailable || 1,
+          originalQuantity: itemData?.originalQuantity || 1,
+          price: itemData?.mrp || itemData?.price,
+          total: itemData?.total,
+          cgst: itemData?.cgst || 0,
+          sgst: itemData?.sgst || 0,
+          item_id: itemData?.value,
+        }
+      );
     });
 
-    const otherItems = billing.items.filter(item => item.type !== type);
-    setBilling(prev => ({ ...prev, items: [...otherItems, ...updatedItems] }));
+    const otherItems = billing.items.filter((item) => item.type !== type);
+    setBilling((prev) => ({
+      ...prev,
+      items: [...otherItems, ...updatedItems],
+    }));
   };
 
   const handleQuantityChange = (item, change) => {
-    const updatedItems = billing.items.map(it => {
-      if (it.value === item.value && it.type === item.type) {
+    const updatedItems = billing.items.map((it) => {
+      if (it.item_id === item.item_id && it.type === item.type) {
         const newQuantity = it.quantity + change;
-        const updatedQuantityAvailable = it.quantityAvailable - newQuantity;
+  
+        // Ensure quantity never goes below 0
+        if (newQuantity < 0) {
+          return it; // No change if quantity is already 0
+        }
+  
+        const updatedQuantityAvailable = it.quantityAvailable - change;
+  
+        // Ensure available quantity never goes below 0
+        if (updatedQuantityAvailable < 0) {
+          return it; // No change if available quantity is 0
+        }
+  
         return {
           ...it,
-          quantity: Math.max(0, newQuantity),
+          quantity: newQuantity,
           quantityAvailable: updatedQuantityAvailable,
         };
       }
       return it;
     });
-
-    setBilling(prev => ({ ...prev, items: updatedItems }));
-  };
-
-  const handleAddNewService = async () => {
-    if (newService.name && newService.price) {
-      await addService(newService);
-      const service = {
-        label: newService.name,
-        value: newService.name,
-        price: parseFloat(newService.price),
-        total: parseFloat(newService.price),
-      };
-
-      const updatedServices = [...billing.items, { ...service, type: 'service', quantity: 1 }];
-
-      setBilling(prev => ({ ...prev, items: updatedServices }));
-
-      setNewService({ name: '', price: '' });
-      setIsAddingService(false);
-    } else {
-      toast({
-        title: 'Error.',
-        description: 'Please fill out the service name and price.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+  
+    setBilling((prev) => ({ ...prev, items: updatedItems }));
   };
 
   const calculateSubtotal = () => {
@@ -266,8 +342,8 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
 
   const calculateTotal = () => {
     const subtotal = parseFloat(calculateSubtotal());
-    const sgstRate = calculateAverageGST('sgst');
-    const cgstRate = calculateAverageGST('cgst');
+    const sgstRate = calculateAverageGST("sgst");
+    const cgstRate = calculateAverageGST("cgst");
     const sgstAmount = parseFloat(calculateGST(subtotal, sgstRate));
     const cgstAmount = parseFloat(calculateGST(subtotal, cgstRate));
     const discountAmount = parseFloat(calculateDiscountAmount());
@@ -276,16 +352,16 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
 
   const calculateAverageGST = (type) => {
     const totalGST = billing.items.reduce((total, item) => {
-      return total + (type === 'sgst' ? item.sgst : item.cgst);
+      return total + (type === "sgst" ? item.sgst : item.cgst);
     }, 0);
-    return (totalGST / billing.items.length) || 0;
+    return totalGST / billing.items.length || 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (billing.patientName && billing.phoneNumber && billing.items.length) {
       const subtotal = calculateSubtotal();
-      const sgstRate = calculateAverageGST('sgst');
-      const cgstRate = calculateAverageGST('cgst');
+      const sgstRate = calculateAverageGST("sgst");
+      const cgstRate = calculateAverageGST("cgst");
       const sgstAmount = (subtotal * sgstRate) / 100;
       const cgstAmount = (subtotal * cgstRate) / 100;
       const total = calculateTotal();
@@ -299,14 +375,13 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
         discount: discount.toFixed(2),
         total: total,
       };
-
-      updateBilling(billingPayload);
+      await updateBilling(billingPayload);
       onClose();
     } else {
       toast({
-        title: 'Error.',
-        description: 'Please fill out all fields.',
-        status: 'error',
+        title: "Error.",
+        description: "Please fill out all fields.",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -317,7 +392,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="6xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Edit Billing Record</ModalHeader>
+        <ModalHeader>Edit Billing</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <FormControl id="date" mb={3}>
@@ -336,7 +411,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               value={billing.phoneNumber}
               onChange={handleInputChange}
               placeholder="Enter phone number"
-              readOnly // Disable editing for phone number
             />
           </FormControl>
           <FormControl id="patientName" mb={3}>
@@ -346,17 +420,6 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               value={billing.patientName}
               onChange={handleInputChange}
               placeholder="Enter patient name"
-              readOnly // Disable editing for patient name
-            />
-          </FormControl>
-          <FormControl id="patientNumber" mb={3}>
-            <FormLabel>Patient Number</FormLabel>
-            <Input
-              name="patientNumber"
-              value={billing.patientNumber}
-              onChange={handleInputChange}
-              placeholder="Enter patient number"
-              readOnly // Disable editing for patient number
             />
           </FormControl>
           <FormControl id="dob" mb={3}>
@@ -366,27 +429,27 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
               name="dob"
               value={billing.dob}
               onChange={handleInputChange}
-              readOnly // Disable editing for dob
+              placeholder="Enter date of birth"
             />
           </FormControl>
           <FormControl id="age" mb={3}>
             <FormLabel>Age</FormLabel>
             <HStack>
               <Box>
-                <FormLabel fontSize="sm">Year</FormLabel>
+                <FormLabel fontSize="sm">Years</FormLabel>
                 <Input
                   name="ageYear"
-                  value={billing.ageYear || ''}
+                  value={billing.ageYear || ""}
                   readOnly
                   placeholder="Years"
                   size="sm"
                 />
               </Box>
               <Box>
-                <FormLabel fontSize="sm">Month</FormLabel>
+                <FormLabel fontSize="sm">Months</FormLabel>
                 <Input
                   name="ageMonth"
-                  value={billing.ageMonth || ''}
+                  value={billing.ageMonth || ""}
                   readOnly
                   placeholder="Months"
                   size="sm"
@@ -399,7 +462,11 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <ChakraSelect
               name="gender"
               value={billing.gender}
-              onChange={(e) => handleInputChange({ target: { name: 'gender', value: e.target.value } })}
+              onChange={(e) =>
+                handleInputChange({
+                  target: { name: "gender", value: e.target.value },
+                })
+              }
               placeholder="Select gender"
             >
               <option value="Male">Male</option>
@@ -412,9 +479,19 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Select
               isMulti
               name="services"
-              value={billing.items.filter(item => item.item_type === 'service')} // Selected services
-              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'service')}
-              options={services}
+              value={services.filter((serv) =>
+                billing.items.some(
+                  (item) =>
+                    item.type === "service" && item.item_id === serv.value
+                )
+              )}
+              onChange={(selectedOptions) =>
+                handleItemChange(selectedOptions, "service")
+              }
+              options={services.map((serv) => ({
+                label: serv.label,
+                value: serv.value,
+              }))}
               placeholder="Select services"
             />
             {isAddingService ? (
@@ -423,24 +500,36 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                   <Input
                     placeholder="Service Name"
                     value={newService.name}
-                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewService({ ...newService, name: e.target.value })
+                    }
                     mr={2}
                   />
                   <Input
                     placeholder="Price"
                     type="number"
                     value={newService.price}
-                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
+                    onChange={(e) =>
+                      setNewService({ ...newService, price: e.target.value })
+                    }
                     mr={2}
                     width="200px"
                   />
-                  <Button colorScheme="teal" onClick={handleAddNewService} size="md">
+                  <Button
+                    colorScheme="teal"
+                    onClick={() => setIsAddingService(false)}
+                    size="md"
+                  >
                     Add Service
                   </Button>
                 </Flex>
               </Box>
             ) : (
-              <Button mt={2} colorScheme="teal" onClick={() => setIsAddingService(true)}>
+              <Button
+                mt={2}
+                colorScheme="teal"
+                onClick={() => setIsAddingService(true)}
+              >
                 Add New Service
               </Button>
             )}
@@ -450,9 +539,19 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             <Select
               isMulti
               name="medicines"
-              value={billing.items.filter(item => item.item_type === 'medicine')} // Selected medicines
-              onChange={(selectedOptions) => handleItemChange(selectedOptions, 'medicine')}
-              options={medicines}
+              value={medicines.filter((med) =>
+                billing.items.some(
+                  (item) =>
+                    item.type === "medicine" && item.item_id === med.value
+                )
+              )}
+              onChange={(selectedOptions) =>
+                handleItemChange(selectedOptions, "medicine")
+              }
+              options={medicines.map((med) => ({
+                label: med.label,
+                value: med.value,
+              }))}
               placeholder="Select medicines"
             />
           </FormControl>
@@ -480,12 +579,14 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 </Tr>
               </Thead>
               <Tbody>
-                {billing.items.map(item => (
-                  <Tr key={item.value}>
-                    <Td>{item.label} ({item.quantityAvailable} available)</Td>
-                    <Td>{item.batchNo || 'N/A'}</Td>
-                    <Td>{item.expiryDate || 'N/A'}</Td>
-                    <Td>{item.manufacturedBy || 'N/A'}</Td>
+                {billing.items.map((item) => (
+                  <Tr key={item.item_id}>
+                    <Td>
+                      {item.label} ({item.quantityAvailable} available)
+                    </Td>
+                    <Td>{item.batchNo || "N/A"}</Td>
+                    <Td>{item.expiryDate || "N/A"}</Td>
+                    <Td>{item.manufacturedBy || "N/A"}</Td>
                     <Td>
                       <Flex alignItems="center">
                         <IconButton
@@ -509,7 +610,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                           aria-label="Increase quantity"
                           size="sm"
                           ml={2}
-                          isDisabled={item.quantity >= item.originalQuantity}
+                          isDisabled={item.quantityAvailable==0}
                         />
                       </Flex>
                     </Td>
@@ -530,21 +631,33 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                 </Td>
               </Tr>
               <Tr>
-                <Td colSpan="8" fontWeight="bold">Subtotal (₹)</Td>
-                <Td fontWeight="bold" textAlign={'end'}>
+                <Td colSpan="8" fontWeight="bold">
+                  Subtotal (₹)
+                </Td>
+                <Td fontWeight="bold" textAlign={"end"}>
                   {calculateSubtotal()}
                 </Td>
               </Tr>
               <Tr fontSize="sm">
-                <Td colSpan="8" fontWeight="bold">Average SGST ({calculateAverageGST('sgst').toFixed(2)}%)</Td>
-                <Td textAlign={'end'} fontWeight="bold">
-                  {calculateGST(parseFloat(calculateSubtotal()), calculateAverageGST('sgst'))}
+                <Td colSpan="8" fontWeight="bold">
+                  Average SGST ({calculateAverageGST("sgst").toFixed(2)}%)
+                </Td>
+                <Td textAlign={"end"} fontWeight="bold">
+                  {calculateGST(
+                    parseFloat(calculateSubtotal()),
+                    calculateAverageGST("sgst")
+                  )}
                 </Td>
               </Tr>
               <Tr fontSize="sm">
-                <Td colSpan="8" fontWeight="bold">Average CGST ({calculateAverageGST('cgst').toFixed(2)}%)</Td>
-                <Td textAlign={'end'} fontWeight="bold">
-                  {calculateGST(parseFloat(calculateSubtotal()), calculateAverageGST('cgst'))}
+                <Td colSpan="8" fontWeight="bold">
+                  Average CGST ({calculateAverageGST("cgst").toFixed(2)}%)
+                </Td>
+                <Td textAlign={"end"} fontWeight="bold">
+                  {calculateGST(
+                    parseFloat(calculateSubtotal()),
+                    calculateAverageGST("cgst")
+                  )}
                 </Td>
               </Tr>
               <Tr>
@@ -564,13 +677,21 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
                     textAlign="center"
                   />
                 </Td>
-                <Td fontWeight="bold" textAlign={'end'}>
+                <Td fontWeight="bold" textAlign={"end"}>
                   {calculateDiscountAmount()}
                 </Td>
               </Tr>
               <Tr>
-                <Td colSpan="8" fontWeight="bold" fontSize="xl">Total (₹)</Td>
-                <Td textAlign={'end'} fontWeight="bold" bg="yellow.100" borderRadius="md" fontSize="xl">
+                <Td colSpan="8" fontWeight="bold" fontSize="xl">
+                  Total (₹)
+                </Td>
+                <Td
+                  textAlign={"end"}
+                  fontWeight="bold"
+                  bg="yellow.100"
+                  borderRadius="md"
+                  fontSize="xl"
+                >
                   {calculateTotal()} INR
                 </Td>
               </Tr>
@@ -583,7 +704,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
             Cancel
           </Button>
           <Button colorScheme="blue" onClick={handleSubmit}>
-            Update
+            Submit
           </Button>
         </ModalFooter>
       </ModalContent>

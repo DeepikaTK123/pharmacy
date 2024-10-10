@@ -138,8 +138,132 @@ class GetMedicines(Resource):
         try:
             start_time = datetime.now()
             connection = get_test()
+
+            # Fetch medicines for the tenant
+            sql_select_medicines_query = """
+            SELECT id, name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit 
+            FROM medicines WHERE tenant_id=%s ORDER BY expiry_date ASC
+            """
+            df_medicines = pd.read_sql_query(sql_select_medicines_query, connection, params=(account_id['tenant_id'],))
+
+            # Fetch alerts related to quantity for the tenant
+            sql_select_quantity_alerts_query = """
+            SELECT value, label, color 
+            FROM alerts 
+            WHERE tenant_id=%s AND type='Quantity' 
+            ORDER BY value ASC
+            """
+            df_quantity_alerts = pd.read_sql_query(sql_select_quantity_alerts_query, connection, params=(account_id['tenant_id'],))
+            
+            # Fetch alerts related to expiry for the tenant
+            sql_select_expiry_alerts_query = """
+            SELECT value, label, color 
+            FROM alerts 
+            WHERE tenant_id=%s AND type='Expiry' 
+            ORDER BY value ASC
+            """
+            df_expiry_alerts = pd.read_sql_query(sql_select_expiry_alerts_query, connection, params=(account_id['tenant_id'],))
+
+            # Convert the alerts to a list of dictionaries for easier processing
+            quantity_alerts = df_quantity_alerts.to_dict(orient='records')
+            expiry_alerts = df_expiry_alerts.to_dict(orient='records')
+
+            # Convert the medicines data to JSON format
+            medicines = df_medicines.to_json(orient='records')
+            data = json.loads(medicines)
+
+            # Get the current date for expiry checks
+            current_date = datetime.now().date()
+
+            # Iterate through the medicines and assign both quantityColor and expiryColor based on alerts
+            for medicine in data:
+                medicine['quantityColor'] = None  # Default to no color for quantity
+                medicine['expiryColor'] = None  # Default to no color for expiry
+
+                # Check quantity alerts and assign the appropriate color
+                for alert in quantity_alerts:
+                    if alert['label'] == 'less than' and medicine['quantity'] < alert['value']:
+                        medicine['quantityColor'] = alert['color']
+                        break  # Use the first matching alert (lowest value)
+                    elif alert['label'] == 'greater than' and medicine['quantity'] > alert['value']:
+                        medicine['quantityColor'] = alert['color']
+                        break  # Use the first matching alert (lowest value)
+
+                # Convert the Unix timestamp to a datetime object
+                expiry_date = datetime.fromtimestamp(medicine['expiry_date']/1000).date()
+                days_until_expiry = (expiry_date - current_date).days
+
+                # Check expiry alerts and assign the appropriate color
+                for alert in expiry_alerts:
+                    if alert['label'] == 'days':
+                        # Check expiry in days
+                        if days_until_expiry <= int(alert['value']):
+                            medicine['expiryColor'] = alert['color']
+                            break  # Use the first matching alert (lowest value)
+                    elif alert['label'] == 'months':
+                        # Convert months to days and check expiry in months
+                        days_in_months = int(alert['value']) * 30  # Assuming 30 days in a month
+                        if days_until_expiry <= days_in_months:
+                            medicine['expiryColor'] = alert['color']
+                            break  # Use the first matching alert (lowest value)
+
+            print(data)
+            put_test(connection)
+            end_time = datetime.now()
+            time_taken = end_time - start_time
+
+            return make_response(jsonify({"status": "success", "data": data}), 200)
+
+        except Exception as e:
+            return handle_database_error(e, connection)
+        
+class CreateAlert(Resource):
+    @token_required
+    def post(account_id, self):
+        try:
+            start_time = datetime.now()
+            connection = get_test()
+            value = request.json
+            print(value)
+            # Insert new alert with label and value
+            insert_query = """
+            INSERT INTO alerts(type, value, label, color, tenant_id)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            record_to_insert = (
+                value["type"],      # Either "Quantity" or "Expiry"
+                value["value"],     # The threshold value for the alert
+                value["label"],     # For Quantity: "less than" or "greater than", For Expiry: "days" or "months"
+                value["color"],     # The color for the alert
+                account_id['tenant_id']
+            )
+
+            with connection.cursor() as cursor:
+                cursor.execute(insert_query, record_to_insert)
+                connection.commit()
+
+            put_test(connection)
+            end_time = datetime.now()
+            time_taken = end_time - start_time
+
+            return make_response(jsonify({"status": "success", "message": "Alert Created Successfully", "data": {}}), 200)
+
+        except Exception as e:
+            return handle_database_error(e, connection)
+
+
+# Resource for getting all alerts
+class GetAlerts(Resource):
+    @token_required
+    def get(account_id, self):
+        connection = None
+        try:
+            start_time = datetime.now()
+            connection = get_test()
+
+            # Fetch alerts with label and value
             sql_select_query = """
-            SELECT id, name, batch_no, manufactured_by, quantity, expiry_date, mrp, cgst, sgst, total, rate, profit FROM medicines WHERE tenant_id=%s ORDER BY expiry_date ASC
+            SELECT id, type, value, label, color FROM alerts WHERE tenant_id=%s ORDER BY id ASC
             """
             df = pd.read_sql_query(sql_select_query, connection, params=(account_id['tenant_id'],))
 
@@ -148,14 +272,42 @@ class GetMedicines(Resource):
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time
-            
+
             return make_response(jsonify({"status": "success", "data": data}), 200)
 
         except Exception as e:
             return handle_database_error(e, connection)
 
-# Adding resources to the API endpoints
+
+# Resource for deleting an alert
+class DeleteAlert(Resource):
+    @token_required
+    def post(account_id, self):
+        try:
+            start_time = datetime.now()
+            connection = get_test()
+            value = request.json
+            alert_id = value["id"]
+
+            # Delete the alert by its ID
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM alerts WHERE id=%s AND tenant_id=%s", (alert_id, account_id['tenant_id']))
+                connection.commit()
+
+            put_test(connection)
+            end_time = datetime.now()
+            time_taken = end_time - start_time
+
+            return make_response(jsonify({"status": "success", "message": "Alert Deleted Successfully", "data": ""}), 200)
+
+        except Exception as e:
+            return handle_database_error(e, connection)
+
+
 api.add_resource(AddMedicine, "/api/medicines/addmedicine")
 api.add_resource(EditMedicine, "/api/medicines/edit")
 api.add_resource(DeleteMedicine, "/api/medicines/delete")
 api.add_resource(GetMedicines, "/api/medicines/getmedicines")
+api.add_resource(CreateAlert, "/api/alerts/create")
+api.add_resource(GetAlerts, "/api/alerts/get")
+api.add_resource(DeleteAlert, "/api/alerts/delete")

@@ -65,6 +65,18 @@ export const deleteMedicine = (data) => {
   return axiosInstance.post('/api/medicines/delete', { id: data });
 };
 
+// Create alert
+export const getAlerts = () => {
+  return axiosInstance.get('/api/alerts/get');
+};
+export const createAlert = (data) => {
+  return axiosInstance.post('/api/alerts/create', data);
+};
+
+// Delete alert by ID
+export const deleteAlert = (id) => {
+  return axiosInstance.post('/api/alerts/delete', { id });
+};
 // Billing API
 export const addBillingRecord = (data) => {
   return axiosInstance.post('/api/billing/add', data);

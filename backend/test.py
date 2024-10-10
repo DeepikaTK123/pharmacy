@@ -1,53 +1,46 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-import time
-import threading
+import smtplib
+from email.message import EmailMessage
 
-def run_test():
-    # Set up Chrome options for headless mode (optional)
-    options = Options()
-    # options.add_argument("--headless")  # Run in headless mode
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+# SMTP configurations
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587
+SMTP_USERNAME = 'venkateshmurthy4747@gmail.com'
+SMTP_PASSWORD = 'larkldrago'  # Consider using a more secure way to store your password
+FROM_EMAIL = SMTP_USERNAME
+TO_EMAILS = ['venki@life9sys.com']
 
-    # Initialize the WebDriver
-    driver = webdriver.Chrome(options=options)
-    driver.implicitly_wait(10)  # Implicit wait for 10 seconds
-
-    # Navigate to the login page
-    driver.get("http://care4link.com")  # Change to your actual URL
-
-    # Find and interact with the login form elements
-    email_input = driver.find_element(By.NAME, 'email')
-    password_input = driver.find_element(By.NAME, 'password')
-    sign_in_button = driver.find_element(By.TAG_NAME, 'button')
-
-    # Fill in the form
-    email_input.send_keys("venki@life9sys.com")
-    password_input.send_keys("Venki@123")  # Use a valid test account
-    sign_in_button.click()
-
-    # Add some wait time to observe the results
-    time.sleep(5)  # Wait for 5 seconds to observe the behavior
-
-    # Check if login was successful
+def send_email(subject, body):
     try:
-        assert "dashboard" in driver.current_url  # Replace with actual dashboard URL or check
-        print("Login successful")
-    except AssertionError:
-        print("Login failed")
+        # Setup server connection
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        
+        # Send the email to each recipient
+        for to_email in TO_EMAILS:
+            msg = EmailMessage()
+            msg.set_content(body)
+            msg['Subject'] = subject
+            msg['From'] = FROM_EMAIL
+            msg['To'] = to_email
+            server.send_message(msg)
+        
+        print(f"Email sent successfully to {TO_EMAILS}")
+    
+    except smtplib.SMTPException as e:
+        # Handle any SMTP-specific errors
+        print(f"Failed to send email due to SMTP error: {e}")
+    
+    except Exception as e:
+        # Handle any other potential errors
+        print(f"An error occurred: {e}")
+    
+    finally:
+        # Ensure the server connection is closed
+        server.quit()
 
-    # Close the browser
-    driver.quit()
+# Example usage
+subject = "Test Email"
+body = "This is a test email sent using Python."
 
-if __name__ == "__main__":
-    threads = []
-    for i in range(10):  # Number of concurrent users
-        t = threading.Thread(target=run_test)
-        threads.append(t)
-        t.start()
-
-    for t in threads:
-        t.join()  # Wait for all threads to complete
+send_email(subject, body)

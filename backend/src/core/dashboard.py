@@ -33,7 +33,6 @@ class GetDashboardCount(Resource):
             df = pd.read_sql_query(sql_select_query, connection)
             data_json = df.to_json(orient='records')
             data = json.loads(data_json)
-            print(data)
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time

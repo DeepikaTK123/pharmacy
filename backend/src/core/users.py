@@ -17,7 +17,6 @@ class Login(Resource):
        
         try:
             value = request.json
-            print(value)
             connection = get_test()
             with connection.cursor() as cursor:
                 cursor.execute("""

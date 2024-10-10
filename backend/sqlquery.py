@@ -53,7 +53,19 @@ def create_table():
     '''
     cursor.execute(medicines)
     conn.commit()
-
+    alerts = '''
+       CREATE TABLE IF NOT EXISTS alerts (
+        id SERIAL PRIMARY KEY,
+        tenant_id VARCHAR NOT NULL,
+        type VARCHAR(50) NOT NULL,     -- "Quantity" or "Expiry"
+        value INTEGER NOT NULL,         -- The threshold value (e.g., 50 for quantity, 30 for expiry)
+        label VARCHAR(50) NOT NULL,     -- Describes condition or unit (e.g., "less than", "greater than", "days", "months")
+        color VARCHAR(10) NOT NULL,     -- Hex color code for the alert
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    '''
+    cursor.execute(alerts)
+    conn.commit()
     billing_table = '''
        CREATE TABLE IF NOT EXISTS billing (
             id SERIAL PRIMARY KEY,

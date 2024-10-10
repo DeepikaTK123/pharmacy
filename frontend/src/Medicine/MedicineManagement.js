@@ -29,6 +29,8 @@ import AddMedicine from './AddMedicine';
 import EditMedicine from './EditMedicine';
 import DeleteMedicine from './DeleteMedicine';
 import { getMedicines, addMedicine, updateMedicine, deleteMedicine } from 'networks';
+import AlertsModal from './Alerts';
+import { FaBell } from 'react-icons/fa';
 
 const MedicineManagement = () => {
   const [medicines, setMedicines] = useState([]);
@@ -41,7 +43,7 @@ const MedicineManagement = () => {
   const toast = useToast();
   const addMedicineModal = useDisclosure();
   const isSmallScreen = useBreakpointValue({ base: true, md: false });
-
+  const alertModal = useDisclosure();
   useEffect(() => {
     fetchMedicines();
   }, []);
@@ -161,20 +163,10 @@ const MedicineManagement = () => {
   const threeMonthsLater = new Date();
   threeMonthsLater.setMonth(currentDate.getMonth() + 3);
 
-  // Define color indicators for quantity and expiry
-  const getQuantityBgColor = (quantity) => {
-    if (quantity === 0) return 'red.200';
-    if (quantity < 10) return 'orange.200';
-    return 'transparent';
+  const handleAlertModalClose = () => {
+    fetchMedicines(); // Call your fetchApi function when the modal closes
+    alertModal.onClose(); // Close the modal
   };
-
-  const getExpiryColor = (expiryDate) => {
-    const date = new Date(expiryDate);
-    if (date <= currentDate) return 'red.200';
-    if (date <= threeMonthsLater) return 'orange.200';
-    return 'transparent';
-  };
-
   return (
     <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
       <Flex flexDirection="column">
@@ -188,7 +180,16 @@ const MedicineManagement = () => {
           <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
             Medicine Management
           </Text>
+          
           <Flex justifyContent="flex-end" gap="10px">
+          <Button
+              leftIcon={<FaBell />} // You can replace the icon with something relevant for Alerts
+              colorScheme="red"
+              borderRadius="20px"
+              onClick={alertModal.onOpen} // Opens the Alerts modal
+            >
+              Configure Alerts
+            </Button>
             <Button
               leftIcon={<MdAddShoppingCart />}
               colorScheme="teal"
@@ -203,12 +204,12 @@ const MedicineManagement = () => {
               letterSpacing="0.4px"
               color="white"
               backgroundColor="#3d94cf"
-              border="2px solid rgba(255, 255, 255, 0.333)"
+              // border="2px solid rgba(255, 255, 255, 0.333)"
               borderRadius="20px"
               padding={{ base: '8px 12px', md: '10px 14px' }}
               transform="translate(0px, 0px) rotate(0deg)"
               transition="0.2s"
-              boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
+              // boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
               _hover={{
                 color: '#516d91',
                 backgroundColor: '#E5EDF5',
@@ -251,14 +252,7 @@ const MedicineManagement = () => {
               </InputRightElement>
             </InputGroup>
           </Flex>
-          <Flex mt={5} flexDirection="column" alignItems={'center'}>
-            <Flex>
-              <Box bg="red.200" w="20px" h="20px" mr={2}></Box>
-              <Text mr={4}>Medicine quantity is zero or expired</Text>
-              <Box bg="orange.200" w="20px" h="20px" mr={2}></Box>
-              <Text>Medicine Quantity is less than 10 or expiring soon</Text>
-            </Flex>
-          </Flex>
+        
           <Flex justifyContent="center" mt={10}>
             {loading ? (
               <Flex justify="center" align="center" height="10vh">
@@ -272,10 +266,10 @@ const MedicineManagement = () => {
                     <Text><strong>Name:</strong> {medicine.name}</Text>
                     <Text><strong>Batch No:</strong> {medicine.batch_no}</Text>
                     <Text><strong>Manufactured By:</strong> {medicine.manufactured_by}</Text>
-                    <Text bg={getQuantityBgColor(medicine.quantity)}><strong>Quantity:</strong> {medicine.quantity}</Text>
+                    <Text bg={medicine.quantityColor}><strong>Quantity:</strong> {medicine.quantity}</Text>
                     <Text><strong>MRP:</strong> {medicine.mrp}</Text>
                     <Text><strong>Rate:</strong> {medicine.rate}</Text>
-                    <Text bg={getExpiryColor(medicine.expiry_date)}><strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}</Text>
+                    <Text bg={medicine.expiryColor}><strong>Expiry Date:</strong> {new Date(medicine.expiry_date).toLocaleDateString()}</Text>
                     <Flex mt={2} justifyContent="space-between">
                       <IconButton
                         icon={<MdEdit />}
@@ -347,13 +341,13 @@ const MedicineManagement = () => {
                             <Td>{medicine.name}</Td>
                             <Td>{medicine.batch_no}</Td>
                             <Td>{medicine.manufactured_by}</Td>
-                            <Td bg={getQuantityBgColor(medicine.quantity)}>{medicine.quantity}</Td>
+                            <Td bg={medicine.quantityColor}>{medicine.quantity}</Td>
                             <Td>{medicine.rate}</Td>
                             <Td>{medicine.mrp}</Td>
                             <Td>{medicine.cgst}</Td>
                             <Td>{medicine.sgst}</Td>
                             <Td>{medicine.total}</Td>
-                            <Td bg={getExpiryColor(medicine.expiry_date)}>
+                            <Td bg={medicine.expiryColor}>
                               {expiryDate.toLocaleDateString()}
                             </Td>
                             <Td>
@@ -391,7 +385,7 @@ const MedicineManagement = () => {
         onClose={addMedicineModal.onClose}
         addNewMedicine={handleAddMedicine}
       />
-
+ <AlertsModal isOpen={alertModal.isOpen} onClose={handleAlertModalClose} />
       {/* EditMedicine modal */}
       {editMedicineData && (
         <EditMedicine

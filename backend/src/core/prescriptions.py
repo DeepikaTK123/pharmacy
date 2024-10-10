@@ -27,7 +27,6 @@ class AddPrescription(Resource):
             start_time = datetime.now()
             connection = get_test()
             value = request.json
-            print(value)
             cursor = connection.cursor()
             
             # Check if patient exists
