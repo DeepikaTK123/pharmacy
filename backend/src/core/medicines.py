@@ -145,72 +145,58 @@ class GetMedicines(Resource):
             """
             df_medicines = pd.read_sql_query(sql_select_medicines_query, connection, params=(account_id['tenant_id'],))
 
-            # Fetch alerts related to quantity for the tenant
-            sql_select_quantity_alerts_query = """
-            SELECT value, label, color 
+            # Fetch alerts related to quantity and expiry for the tenant
+            sql_select_alerts_query = """
+            SELECT value, label, color, type 
             FROM alerts 
-            WHERE tenant_id=%s AND type='Quantity' 
+            WHERE tenant_id=%s 
             ORDER BY value ASC
             """
-            df_quantity_alerts = pd.read_sql_query(sql_select_quantity_alerts_query, connection, params=(account_id['tenant_id'],))
-            
-            # Fetch alerts related to expiry for the tenant
-            sql_select_expiry_alerts_query = """
-            SELECT value, label, color 
-            FROM alerts 
-            WHERE tenant_id=%s AND type='Expiry' 
-            ORDER BY value ASC
-            """
-            df_expiry_alerts = pd.read_sql_query(sql_select_expiry_alerts_query, connection, params=(account_id['tenant_id'],))
+            df_alerts = pd.read_sql_query(sql_select_alerts_query, connection, params=(account_id['tenant_id'],))
 
-            # Convert the alerts to a list of dictionaries for easier processing
-            quantity_alerts = df_quantity_alerts.to_dict(orient='records')
-            expiry_alerts = df_expiry_alerts.to_dict(orient='records')
+            # Split alerts into separate DataFrames for quantity and expiry
+            quantity_alerts = df_alerts[df_alerts['type'] == 'Quantity']
+            expiry_alerts = df_alerts[df_alerts['type'] == 'Expiry']
 
-            # Convert the medicines data to JSON format
-            medicines = df_medicines.to_json(orient='records')
-            data = json.loads(medicines)
-
-            # Get the current date for expiry checks
+            # Get the current date
             current_date = datetime.now().date()
 
-            # Iterate through the medicines and assign both quantityColor and expiryColor based on alerts
-            for medicine in data:
-                medicine['quantityColor'] = None  # Default to no color for quantity
-                medicine['expiryColor'] = None  # Default to no color for expiry
+            # Convert the medicines data to a list of dictionaries
+            medicines = df_medicines.to_dict(orient='records')
 
-                # Check quantity alerts and assign the appropriate color
-                for alert in quantity_alerts:
-                    if alert['label'] == 'less than' and medicine['quantity'] < alert['value']:
-                        medicine['quantityColor'] = alert['color']
-                        break  # Use the first matching alert (lowest value)
-                    elif alert['label'] == 'greater than' and medicine['quantity'] > alert['value']:
-                        medicine['quantityColor'] = alert['color']
-                        break  # Use the first matching alert (lowest value)
+            # Function to determine quantity color based on alerts
+            def get_quantity_color(medicine_quantity):
+                for _, alert in quantity_alerts.iterrows():
+                    if alert['label'] == 'less than' and medicine_quantity < alert['value']:
+                        return alert['color']
+                    elif alert['label'] == 'greater than' and medicine_quantity > alert['value']:
+                        return alert['color']
+                return None
 
-                # Convert the Unix timestamp to a datetime object
-                expiry_date = datetime.fromtimestamp(medicine['expiry_date']/1000).date()
-                days_until_expiry = (expiry_date - current_date).days
+            # Function to determine expiry color based on alerts
+            def get_expiry_color(medicine_expiry_date):
+                # Assume medicine_expiry_date is already a datetime.date object, no need to convert
+                days_until_expiry = (medicine_expiry_date - current_date).days
 
-                # Check expiry alerts and assign the appropriate color
-                for alert in expiry_alerts:
-                    if alert['label'] == 'days':
-                        # Check expiry in days
-                        if days_until_expiry <= int(alert['value']):
-                            medicine['expiryColor'] = alert['color']
-                            break  # Use the first matching alert (lowest value)
+                for _, alert in expiry_alerts.iterrows():
+                    if alert['label'] == 'days' and days_until_expiry <= int(alert['value']):
+                        return alert['color']
                     elif alert['label'] == 'months':
-                        # Convert months to days and check expiry in months
                         days_in_months = int(alert['value']) * 30  # Assuming 30 days in a month
                         if days_until_expiry <= days_in_months:
-                            medicine['expiryColor'] = alert['color']
-                            break  # Use the first matching alert (lowest value)
+                            return alert['color']
+                return None
+
+            # Apply the color functions to each medicine
+            for medicine in medicines:
+                medicine['quantityColor'] = get_quantity_color(medicine['quantity'])
+                medicine['expiryColor'] = get_expiry_color(medicine['expiry_date'])
 
             put_test(connection)
             end_time = datetime.now()
             time_taken = end_time - start_time
 
-            return make_response(jsonify({"status": "success", "data": data}), 200)
+            return make_response(jsonify({"status": "success", "data": medicines}), 200)
 
         except Exception as e:
             return handle_database_error(e, connection)
