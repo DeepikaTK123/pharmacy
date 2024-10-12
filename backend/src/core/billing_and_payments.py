@@ -25,8 +25,10 @@ class AddBillingRecord(Resource):
             cursor.execute("SELECT id FROM patients WHERE phone_number=%s and tenant_id=%s", 
                            (value.get("phoneNumber", ""), account_id["tenant_id"]))
             patient_id = cursor.fetchone()
-
+            if not value["patientNumber"]:
+                value["patientNumber"]= value["phoneNumber"]
             if not patient_id:
+
                 insert_patient_query = """
                 INSERT INTO patients(tenant_id, patient_no, name, phone_number, dob, gender, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -41,16 +43,18 @@ class AddBillingRecord(Resource):
                 patient_id = patient_id[0]
 
             # Insert billing record
+            
+            
             insert_query = """
             INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, 
-            last_updated, tenant_id, age_year, age_month, gender, patient_number)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            last_updated, tenant_id, age_year, age_month, gender, patient_number,patient_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """
             record_to_insert = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 
                 value.get("status", ""), value.get("discount", 0.00), value.get("subtotal", 0.00), value.get("cgst", 0.00), 
                 value.get("sgst", 0.00), value.get("total", 0.00), start_time, account_id.get('tenant_id', ""), 
-                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", "")
+                value.get("ageYear", 0), value.get("ageMonth", 0), value.get("gender", ""), value.get("patientNumber", value["phoneNumber"]),patient_id
             )
             cursor.execute(insert_query, record_to_insert)
             billing_id = cursor.fetchone()[0]

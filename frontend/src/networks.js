@@ -165,9 +165,9 @@ export const addPrescription = (data) => {
   return axiosInstance.post('/api/prescriptions/add', data);
 };
 
-export const getPrescriptions = () => {
-  return axiosInstance.get('/api/prescriptions/get');
-};
+// export const getPrescriptions = () => {
+//   return axiosInstance.get('/api/prescriptions/get');
+// };
 
 export const updatePrescription = (data) => {
   return axiosInstance.post('/api/prescriptions/edit', data);
@@ -175,4 +175,19 @@ export const updatePrescription = (data) => {
 
 export const deletePrescription = (id) => {
   return axiosInstance.post('/api/prescriptions/delete', { id });
+};
+export const getPatientDetails = (id) => {
+  return axiosInstance.get(`/api/patient/details/${id}`);
+};
+
+export const getHealthData = (id) => {
+  return axiosInstance.get(`/api/patient/healthdata/${id}`);
+};
+
+export const getPrescriptions = (id) => {
+  return axiosInstance.get(`/api/patient/prescriptions/${id}`);
+};
+
+export const getBills = (id) => {
+  return axiosInstance.get(`/api/patient/bills/${id}`);
 };

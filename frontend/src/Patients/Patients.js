@@ -30,7 +30,7 @@ import EditPatient from './EditPatient';
 import DeletePatient from './DeletePatient';
 import { getPatients, addPatient, updatePatient, deletePatient } from 'networks';
 import { useNavigate } from 'react-router-dom';
-
+import { IoMdEye } from "react-icons/io";
 const calculateAge = (dob) => {
   const birthDate = new Date(dob);
   const difference = Date.now() - birthDate.getTime();
@@ -273,7 +273,7 @@ const Patients = () => {
                   </Thead>
                   <Tbody>
                     {filteredPatients.map((patient,index) => (
-                      <Tr key={patient.id} onClick={() => viewPatientDetails(patient.id)}>
+                      <Tr key={patient.id} >
                         <Td>{index+1}</Td>
                         <Td>{patient.patient_no}</Td>
                         <Td>{patient.name}</Td>
@@ -282,6 +282,14 @@ const Patients = () => {
                         <Td>{patient.gender}</Td>
                         {/* <Td>{patient.revisit}</Td> */}
                         <Td>
+                          <IconButton
+                            icon={<IoMdEye />}
+                            onClick={() => viewPatientDetails(patient.id)}
+                            aria-label="Edit Patient"
+                            mr={2}
+                            colorScheme="blue"
+                            size="sm"
+                          />
                           <IconButton
                             icon={<MdEdit />}
                             onClick={() => handleEditPatient(patient)}

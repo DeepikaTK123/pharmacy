@@ -40,6 +40,7 @@ def create_app(config):
     from src.admin.tenant import tenant
     from src.core.service import services
     from src.core.patients import patients
+    from src.core.patientdetails import patientdetails
 
 
     app.register_blueprint(users)
@@ -50,5 +51,6 @@ def create_app(config):
     app.register_blueprint(tenant)
     app.register_blueprint(services)
     app.register_blueprint(patients)
+    app.register_blueprint(patientdetails)
 
     return app

@@ -1,150 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Flex, Text, Spinner, Card, CardHeader, CardBody, SimpleGrid, Divider, Badge, VStack, Table, Thead, Tbody, Tr, Th, Td, Button } from '@chakra-ui/react';
-import { DownloadIcon } from '@chakra-ui/icons';
-import Highcharts from 'highcharts';
-import HighchartsReact from 'highcharts-react-official';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import {
+  Box,
+  Flex,
+  Text,
+  Spinner,
+  Card,
+  CardHeader,
+  CardBody,
+  SimpleGrid,
+  Divider,
+  VStack,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+} from "@chakra-ui/react";
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
+import HumanBodySVG from "assets/img/humanbody";
+import {
+  getPatientDetails,
+  getHealthData,
+  getPrescriptions,
+  getBills,
+} from "networks"; // Adjust the import path accordingly
 
-// Mock function to get patient details
-const getMockPatientDetails = (id) => {
-  const samplePatients = {
-    3: {
-      id: 3,
-      name: 'John Doe',
-      age: 45,
-      phone: '123-456-7890',
-      condition: 'Hypertension',
-      doctor: 'Dr. Smith',
-      gender: 'Male',
-      contact: 'Jane Doe',
-      admission_date: '2024-07-01T10:30:00Z',
-      address: '123 Main St, Springfield',
-      health_status: 'critical',
-      health_data: {
-        blood_pressure: [130, 135, 140, 145, 150],
-        blood_sugar: [110, 115, 120, 125, 130],
-        heart_rate: [70, 72, 75, 78, 80],
-        temperature: [36.5, 36.7, 37.0, 37.3, 37.5],
-        spo2: [98, 97, 96, 95, 94]
-      },
-      previous_records: [
-        {
-          date: '2023-12-15',
-          condition: 'Normal',
-          doctor: 'Dr. Smith',
-          report: 'test-report-1.pdf'
-        },
-        {
-          date: '2023-11-10',
-          condition: 'Improving',
-          doctor: 'Dr. Smith',
-          report: 'test-report-2.pdf'
-        }
-      ]
-    },
-    4: {
-      id: 4,
-      name: 'Jane Roe',
-      age: 37,
-      phone: '987-654-3210',
-      condition: 'Diabetes',
-      doctor: 'Dr. Johnson',
-      gender: 'Female',
-      contact: 'John Roe',
-      admission_date: '2024-07-02T11:00:00Z',
-      address: '456 Elm St, Springfield',
-      health_status: 'stable',
-      health_data: {
-        blood_pressure: [120, 122, 124, 126, 128],
-        blood_sugar: [90, 92, 94, 96, 98],
-        heart_rate: [65, 66, 67, 68, 69],
-        temperature: [36.6, 36.7, 36.8, 36.9, 37.0],
-        spo2: [99, 98, 97, 96, 95]
-      },
-      previous_records: [
-        {
-          date: '2023-12-10',
-          condition: 'Stable',
-          doctor: 'Dr. Johnson',
-          report: 'test-report-3.pdf'
-        },
-        {
-          date: '2023-11-20',
-          condition: 'Normal',
-          doctor: 'Dr. Johnson',
-          report: 'test-report-4.pdf'
-        }
-      ]
-    },
-    // Add more sample patients as needed
-  };
-
-  return samplePatients[id] || null;
-};
-
-const PatientConditionChart = ({ title, data, category }) => {
+const PatientConditionChart = ({ title, data, category, categories }) => {
   const options = {
-    chart: {
-      type: 'line'
-    },
-    title: {
-      text: title
-    },
-    xAxis: {
-      categories: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
-    },
-    yAxis: {
-      title: {
-        text: category
-      }
-    },
-    series: [
-      {
-        name: category,
-        data: data
-      }
-    ],
-    credits: {
-      enabled: false
-    }
+    chart: { type: "line" },
+    title: { text: title },
+    xAxis: { categories: categories },
+    yAxis: { title: { text: category } },
+    series: [{ name: category, data: data }],
+    credits: { enabled: false },
   };
-
   return <HighchartsReact highcharts={Highcharts} options={options} />;
 };
 
 const PatientDetails = () => {
   const { id } = useParams();
-  const [patient, setPatient] = useState(null);
+  const [patientDetails, setPatientDetails] = useState({});
+  const [healthData, setHealthData] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchPatientDetails = async () => {
+    const fetchPatientData = async () => {
       try {
-        // Simulate an API call with mock data
-        const patientData = getMockPatientDetails(id);
-        setPatient(patientData);
+        setLoading(true);
+        setError(null);
+
+        // Fetch all data concurrently
+        const [
+          detailsResponse,
+          healthDataResponse,
+          prescriptionsResponse,
+          billsResponse,
+        ] = await Promise.all([
+          getPatientDetails(id),
+          getHealthData(id),
+          getPrescriptions(id),
+          getBills(id),
+        ]);
+
+        setPatientDetails(detailsResponse.data.data || {});
+        setHealthData(healthDataResponse.data.data || []);
+        setPrescriptions(prescriptionsResponse.data.data || []);
+        setBills(billsResponse.data.data || []);
+
         setLoading(false);
-      } catch (error) {
-        console.error('Error fetching patient details:', error);
+      } catch (err) {
+        console.error("Error fetching patient data:", err);
+        setError("Failed to load patient data.");
         setLoading(false);
       }
     };
 
-    fetchPatientDetails();
+    fetchPatientData();
   }, [id]);
-
-  const getHealthStatusBadge = (status) => {
-    switch (status) {
-      case 'critical':
-        return <Badge colorScheme="red" fontSize="1.2em" p={2}>Critical</Badge>;
-      case 'stable':
-        return <Badge colorScheme="green" fontSize="1.2em" p={2}>Stable</Badge>;
-      case 'improving':
-        return <Badge colorScheme="yellow" fontSize="1.2em" p={2}>Improving</Badge>;
-      default:
-        return <Badge colorScheme="gray" fontSize="1.2em" p={2}>Unknown</Badge>;
-    }
-  };
 
   if (loading) {
     return (
@@ -154,122 +92,305 @@ const PatientDetails = () => {
     );
   }
 
-  const lastParameter = (data) => data[data.length - 1];
+  if (error) {
+    return (
+      <Flex justify="center" align="center" height="100vh">
+        <Text color="red.500">{error}</Text>
+      </Flex>
+    );
+  }
 
   return (
-    <Box pt={{ base: "100px", md: "20px", xl: "35px" }} px={{ base: "5px", md: "20px", xl: "35px" }}>
+    <Box
+      pt={{ base: "100px", md: "20px", xl: "35px" }}
+      px={{ base: "5px", md: "20px", xl: "35px" }}
+    >
       <Card mt={10} mb={5} boxShadow="lg">
         <CardHeader textAlign="center">
           <VStack spacing={4}>
             <Text fontSize="3xl" fontWeight="bold" color="teal.500">
               Patient Details
             </Text>
-          
+            {Object.keys(patientDetails).length ? (
+              <Text fontSize="lg" fontWeight="bold" color="gray.600">
+                Diagnosis:{" "}
+                <Text as="span" fontWeight="bold">
+                  {healthData.length
+                    ? healthData[healthData.length - 1].diagnosis
+                    : "No data"}
+                </Text>
+              </Text>
+            ) : (
+              <Text>No patient details available</Text>
+            )}
           </VStack>
         </CardHeader>
         <Divider />
         <CardBody>
-          {patient ? (
+          {Object.keys(patientDetails).length ? (
             <>
-              <SimpleGrid columns={[1, null, 2]} spacing="40px" mb={5}>
+              <SimpleGrid columns={[1, null, 3]} spacing="40px" mb={5}>
                 <Box>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Name: <Text as="span" fontWeight="normal">{patient.name}</Text>
+                    Name:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {patientDetails.name || "No data"}
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Age: <Text as="span" fontWeight="normal">{patient.age}</Text>
+                    Age:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {patientDetails.dob || "No data"}
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Phone: <Text as="span" fontWeight="normal">{patient.phone}</Text>
+                    Phone:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {patientDetails.phone_number || "No data"}
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Diagnosis: <Text as="span" fontWeight="normal">{patient.condition}</Text>
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Doctor: <Text as="span" fontWeight="normal">{patient.doctor}</Text>
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Gender: <Text as="span" fontWeight="normal">{patient.gender}</Text>
+                    Gender:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {patientDetails.gender || "No data"}
+                    </Text>
                   </Text>
                 </Box>
                 <Box>
-                 
+                  {/* Health metrics */}
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Admission Date: <Text as="span" fontWeight="normal">
-                      {new Date(patient.admission_date).toLocaleString("en-US", {
-                        hour: "numeric",
-                        minute: "numeric",
-                        hour12: true,
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    Blood Pressure:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {healthData.length
+                        ? healthData[healthData.length - 1].blood_pressure
+                        : "No data"}{" "}
+                      mmHg
                     </Text>
                   </Text>
-                
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Last Blood Pressure: <Text as="span" fontWeight="normal">{lastParameter(patient.health_data.blood_pressure)} mmHg</Text>
+                    Blood Sugar:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {healthData.length
+                        ? healthData[healthData.length - 1].blood_sugar
+                        : "No data"}{" "}
+                      mg/dL
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Last Blood Sugar: <Text as="span" fontWeight="normal">{lastParameter(patient.health_data.blood_sugar)} mg/dL</Text>
+                    Heart Rate:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {healthData.length
+                        ? healthData[healthData.length - 1].heart_rate
+                        : "No data"}{" "}
+                      bpm
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Last Heart Rate: <Text as="span" fontWeight="normal">{lastParameter(patient.health_data.heart_rate)} bpm</Text>
+                    Temperature:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {healthData.length
+                        ? healthData[healthData.length - 1].temperature
+                        : "No data"}{" "}
+                      °F
+                    </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Last Temperature: <Text as="span" fontWeight="normal">{lastParameter(patient.health_data.temperature)} °C</Text>
-                  </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="gray.600">
-                    Last SpO2: <Text as="span" fontWeight="normal">{lastParameter(patient.health_data.spo2)} %</Text>
+                    SpO2:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {healthData.length
+                        ? healthData[healthData.length - 1].spo2
+                        : "No data"}{" "}
+                      %
+                    </Text>
                   </Text>
                 </Box>
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  <HumanBodySVG markX={115} markY={50} markColor="red" />
+                </Box>
               </SimpleGrid>
-              <SimpleGrid columns={[1, null, 3]} spacing="20px">
-                <PatientConditionChart title="Blood Pressure" data={patient.health_data.blood_pressure} category="Blood Pressure (mmHg)" />
-                <PatientConditionChart title="Blood Sugar" data={patient.health_data.blood_sugar} category="Blood Sugar (mg/dL)" />
-                <PatientConditionChart title="Heart Rate" data={patient.health_data.heart_rate} category="Heart Rate (bpm)" />
-                <PatientConditionChart title="Temperature" data={patient.health_data.temperature} category="Temperature (°C)" />
-                <PatientConditionChart title="SpO2" data={patient.health_data.spo2} category="SpO2 (%)" />
-              </SimpleGrid>
-              <Box mt={5}>
-                <Card>
-                  <CardHeader>
-                    <Text fontSize="2xl" fontWeight="bold" color="teal.500" textAlign="center">
-                      Previous Records
-                    </Text>
-                  </CardHeader>
-                  <Divider />
-                  <CardBody>
-                    {patient.previous_records && patient.previous_records.length > 0 ? (
-                      <Table variant="simple">
-                        <Thead>
-                          <Tr>
-                            <Th>Date</Th>
-                            <Th>Condition</Th>
-                            <Th>Doctor</Th>
-                            <Th>Report</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {patient.previous_records.map((record, index) => (
-                            <Tr key={index}>
-                              <Td>{record.date}</Td>
-                              <Td>{record.condition}</Td>
-                              <Td>{record.doctor}</Td>
-                              <Td>
-                                <Button as="a" href={`path/to/reports/${record.report}`} download={record.report} leftIcon={<DownloadIcon />} colorScheme="teal" variant="outline">
-                                  Download
-                                </Button>
-                              </Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    ) : (
-                      <Text>No previous records available</Text>
-                    )}
-                  </CardBody>
-                </Card>
+              <Divider borderWidth="1px" />
+              {/* Patient condition charts */}
+              {healthData.length ? (
+                <SimpleGrid columns={[1, null, 3]} spacing="20px">
+                  <PatientConditionChart
+                    title="Temperature"
+                    data={healthData.map((data) => data.temperature)}
+                    category="Temperature (°F)"
+                    categories={healthData.map((data) => data.visit_day)}
+                  />
+                  <PatientConditionChart
+                    title="Heart Rate"
+                    data={healthData.map((data) => data.heart_rate)}
+                    category="Heart Rate (bpm)"
+                    categories={healthData.map((data) => data.visit_day)}
+                  />
+                  <PatientConditionChart
+                    title="Blood Pressure"
+                    data={healthData.map((data) => data.blood_pressure)}
+                    category="Blood Pressure (mmHg)"
+                    categories={healthData.map((data) => data.visit_day)}
+                  />
+                  <PatientConditionChart
+                    title="SpO2"
+                    data={healthData.map((data) => data.spo2)}
+                    category="SpO2 (%)"
+                    categories={healthData.map((data) => data.visit_day)}
+                  />
+                  <PatientConditionChart
+                    title="Blood Sugar"
+                    data={healthData.map((data) => data.blood_sugar)}
+                    category="Blood Sugar (mg/dL)"
+                    categories={healthData.map((data) => data.visit_day)}
+                  />
+                </SimpleGrid>
+              ) : (
+                <Text>No charts available</Text>
+              )}
+              {/* Visits list */}
+              <Box mt={8}>
+                <Text fontSize="2xl" fontWeight="bold" mb={4}>
+                  List of Visits
+                </Text>
+                {healthData.length ? (
+                  <Table>
+                    <Thead>
+                      <Tr>
+                        <Th>Visit Day</Th>
+                        <Th>Doctor</Th>
+                        <Th>Diagnosis</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {healthData.map((record, index) => (
+                        <Tr key={index}>
+                          <Td>{record.visit_day || "No data"}</Td>
+                          <Td>{record.doctor || "No data"}</Td>
+                          <Td>{record.diagnosis || "No data"}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                ) : (
+                  <Text>No visit data available</Text>
+                )}
+              </Box>
+
+              <Box mt={8} >
+                <Text fontSize="2xl" fontWeight="bold" mb={4}>
+                  Prescription List
+                </Text>
+                {prescriptions.length ? (
+                  <SimpleGrid columns={[1, null, 4]} spacing="20px">
+                    {prescriptions.map((record, index) => (
+                      <Card key={index} boxShadow="lg" borderRadius="md">
+                     
+                        <CardBody>
+                          <VStack align="start" spacing={1}>
+                          <Text
+                            fontSize="md"
+                            fontWeight="medium"
+                            color="gray.500"
+                          >
+                            Date:{" "}
+                            {new Date(record.created_at).toLocaleDateString()}
+                          </Text>
+                          <Text
+                            fontSize="xl"
+                            fontWeight="bold"
+                            color="gray.700"
+                          >
+                            Doctor: {record.doctor_name || "No data"}
+                          </Text>
+                            <Text
+                              fontSize="lg"
+                              fontWeight="bold"
+                              color="gray.600"
+                            >
+                              Diagnosis:{" "}
+                              <Text as="span" fontWeight="medium">
+                                {record.diagnosis || "No data"}
+                              </Text>
+                            </Text>
+                            <Text
+                              fontSize="lg"
+                              fontWeight="bold"
+                              color="gray.600"
+                            >
+                              Service:{" "}
+                              <Text as="span" fontWeight="medium" >
+                                {record.service || "No data"}
+                              </Text>
+                            </Text>
+                            {record.medications.length ? (
+                              <Box>
+                                {record.medications.map((medication, idx) => (
+                                  <Text key={idx} color="gray.700" mb={1}>
+                                    {" "}
+                                    {/* Adjusted margin-bottom */}
+                                    <Text as="span" fontWeight="bold">
+                                      {medication.name} ({medication.quantity})
+                                    </Text>
+                                    {" - "}
+                                    <Text
+                                      as="span"
+                                      fontWeight="medium"
+                                      color="gray.600"
+                                    >
+                                      {medication.timings} {medication.food}
+                                    </Text>
+                                  </Text>
+                                ))}
+                              </Box>
+                            ) : (
+                              <Text>No medications prescribed</Text>
+                            )}
+                            <Text
+                              fontSize="lg"
+                              fontWeight="bold"
+                              color="gray.600"
+                              mt={3}
+                            >
+                              Instructions:{" "}
+                              <Text as="span" fontWeight="medium" >
+                                {record.instruction || "No data"}
+                              </Text>
+                            </Text>
+                          </VStack>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </SimpleGrid>
+                ) : (
+                  <Text>No prescriptions available</Text>
+                )}
+              </Box>
+
+              <Box mt={8}>
+                <Text fontSize="2xl" fontWeight="bold" mb={4}>
+                  Bills
+                </Text>
+                {bills.length ? (
+                  <Table>
+                    <Thead>
+                      <Tr>
+                        <Th>Date</Th>
+                        <Th>Amount</Th>
+                        <Th>Status</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {bills.map((bill, index) => (
+                        <Tr key={index}>
+                          <Td>{new Date(bill.created_at).toLocaleDateString()}</Td>
+                          <Td>Rs {bill.total_amount || "No data"}</Td>
+                          <Td>{"Paid" || "No data"}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                ) : (
+                  <Text>No bills available</Text>
+                )}
               </Box>
             </>
           ) : (

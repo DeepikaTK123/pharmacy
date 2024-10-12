@@ -84,6 +84,7 @@ def create_table():
             age_month BIGINT,
             gender VARCHAR(10),
             patient_number VARCHAR(50),
+            patient_id VARCHAR(50),
             dob DATE
         );
     '''
