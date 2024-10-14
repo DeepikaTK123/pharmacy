@@ -221,7 +221,7 @@ fetchPatientData()
                       mmHg
                     </Text>
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold" color="gray.600">
+                  {/* <Text fontSize="lg" fontWeight="bold" color="gray.600">
                     Blood Sugar:{" "}
                     <Text as="span" fontWeight="normal">
                       {healthData.length
@@ -229,7 +229,7 @@ fetchPatientData()
                         : "No data"}{" "}
                       mg/dL
                     </Text>
-                  </Text>
+                  </Text> */}
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
                     Heart Rate:{" "}
                     <Text as="span" fontWeight="normal">
@@ -363,16 +363,21 @@ fetchPatientData()
                                 {record.diagnosis || "No data"}
                               </Text>
                             </Text>
-                            <Text
-                              fontSize="lg"
-                              fontWeight="bold"
-                              color="gray.600"
-                            >
-                              Service:{" "}
-                              <Text as="span" fontWeight="medium" >
-                                {record.services[record.services.length-1].service_name || "No data"}
-                              </Text>
-                            </Text>
+                            {record.services.length?(
+                               <Text
+                               fontSize="lg"
+                               fontWeight="bold"
+                               color="gray.600"
+                             >
+                               Service:{" "}
+                               <Text as="span" fontWeight="medium" >
+                                 {record.services[record.services.length-1].service_name || "No data"}
+                               </Text>
+                             </Text>
+                            ):(
+                              <></>
+                            )}
+                           
                             {record.medications.length ? (
                               <Box>
                                 {record.medications.map((medication, idx) => (

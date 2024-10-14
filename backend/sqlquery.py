@@ -47,7 +47,6 @@ def create_table():
             total DECIMAL(10, 2) NOT NULL,
             rate DECIMAL(10, 2),
             profit DECIMAL(10, 2),
-            sold BIGINT DEFAULT 0,
             tenant_id VARCHAR NOT NULL
         );
     '''

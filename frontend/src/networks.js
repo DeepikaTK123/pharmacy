@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 // const ip="http://128.199.19.234"
-const ip = 'http://' + window.location.hostname + ":5000";
+// const ip = 'http://' + window.location.hostname + ":5000";
 // const ip="http://192.168.31.117"
-// const ip = "https://care4link.com"; // Use HTTPS
+const ip = "https://care4link.com"; // Use HTTPS
 const BASE_URL = ip;
 const axiosInstance = axios.create({
   baseURL: BASE_URL,

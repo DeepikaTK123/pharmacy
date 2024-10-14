@@ -159,8 +159,9 @@ const AlertsModal = ({ isOpen, onClose }) => {
                       onChange={(e) => setColor(e.target.value)}
                       mb={3}
                       width="100px"
+                      p={0}
+                      borderRadius={30}
                     />
-
                     <Button colorScheme="blue" onClick={createAlert} mt={4}>
                       Create Quantity Alert
                     </Button>
@@ -210,6 +211,8 @@ const AlertsModal = ({ isOpen, onClose }) => {
                       onChange={(e) => setColor(e.target.value)}
                       mb={3}
                       width="100px"
+                      p={0}
+                      borderRadius={30}
                     />
 
                     <Button colorScheme="green" onClick={createExpiryAlert} mt={4}>
