@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -20,19 +20,24 @@ import {
   useToast,
   Spinner,
   useBreakpointValue,
-} from '@chakra-ui/react';
-import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
-import AddBilling from './AddBilling';
-import EditBilling from './EditBilling';
-import DeleteBilling from './DeleteBilling';
-import ViewBilling from './ViewBilling';
-import { addBillingRecord, getBillingRecords, updateBillingRecord, deleteBillingRecord } from 'networks';
+} from "@chakra-ui/react";
+import { MdAdd, MdEdit, MdDelete, MdVisibility } from "react-icons/md";
+import AddBilling from "./AddBilling";
+import EditBilling from "./EditBilling";
+import DeleteBilling from "./DeleteBilling";
+import ViewBilling from "./ViewBilling";
+import {
+  addBillingRecord,
+  getBillingRecords,
+  updateBillingRecord,
+  deleteBillingRecord,
+} from "networks";
 
 const PharmacyBilling = () => {
   const [billing, setBilling] = useState([]);
   const [filteredBilling, setFilteredBilling] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const addBillingModal = useDisclosure();
   const editBillingModal = useDisclosure();
   const deleteBillingModal = useDisclosure();
@@ -40,9 +45,12 @@ const PharmacyBilling = () => {
   const [editBillingData, setEditBillingData] = useState(null);
   const [deleteBillingData, setDeleteBillingData] = useState(null);
   const [viewBillingData, setViewBillingData] = useState(null);
-  const textColor = useColorModeValue('secondaryGray.900', 'white');
+  const textColor = useColorModeValue("secondaryGray.900", "white");
   const toast = useToast();
   const isSmallScreen = useBreakpointValue({ base: true, md: false });
+  const [quickBillPhoneNumber, setQuickBillPhoneNumber] = useState(null); // State to hold phone number for quick bill
+
+  const quickBillModal = useDisclosure(); // Use a separate disclosure for Quick Bill modal
 
   const fetchBillingRecords = useCallback(async () => {
     setLoading(true);
@@ -56,9 +64,9 @@ const PharmacyBilling = () => {
       setFilteredBilling(cleanedData);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Error fetching pharmacy billing records',
-        status: 'error',
+        title: "Error",
+        description: "Error fetching pharmacy billing records",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -88,17 +96,17 @@ const PharmacyBilling = () => {
       fetchBillingRecords();
       addBillingModal.onClose();
       toast({
-        title: 'Success',
-        description: 'Pharmacy billing record added successfully',
-        status: 'success',
+        title: "Success",
+        description: "Pharmacy billing record added successfully",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Error adding pharmacy billing record',
-        status: 'error',
+        title: "Error",
+        description: "Error adding pharmacy billing record",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -111,17 +119,17 @@ const PharmacyBilling = () => {
       fetchBillingRecords();
       editBillingModal.onClose();
       toast({
-        title: 'Success',
-        description: 'Pharmacy billing record updated successfully',
-        status: 'success',
+        title: "Success",
+        description: "Pharmacy billing record updated successfully",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Error updating pharmacy billing record',
-        status: 'error',
+        title: "Error",
+        description: "Error updating pharmacy billing record",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -134,23 +142,26 @@ const PharmacyBilling = () => {
       fetchBillingRecords();
       deleteBillingModal.onClose();
       toast({
-        title: 'Success',
-        description: 'Pharmacy billing record deleted successfully',
-        status: 'success',
+        title: "Success",
+        description: "Pharmacy billing record deleted successfully",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Error deleting pharmacy billing record',
-        status: 'error',
+        title: "Error",
+        description: "Error deleting pharmacy billing record",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
   };
-
+  const handleQuickBill = (phoneNumber) => {
+    setQuickBillPhoneNumber(phoneNumber); // Set the phone number for Quick Bill
+    quickBillModal.onOpen(); // Open the modal
+  };
   const handleEditBilling = (item) => {
     setEditBillingData(item);
     editBillingModal.onOpen();
@@ -167,16 +178,21 @@ const PharmacyBilling = () => {
   };
 
   return (
-    <Box pt={{ base: '130px', md: '20px', xl: '35px' }} overflowY="auto">
+    <Box pt={{ base: "130px", md: "20px", xl: "35px" }} overflowY="auto">
       <Flex flexDirection="column">
         <Flex
-          mt={{ base: '20px', md: '45px' }}
+          mt={{ base: "20px", md: "45px" }}
           mb="20px"
-          flexDirection={{ base: 'column', md: 'row' }}
+          flexDirection={{ base: "column", md: "row" }}
           justifyContent="space-between"
-          align={{ base: 'start', md: 'center' }}
+          align={{ base: "start", md: "center" }}
         >
-          <Text color={textColor} fontSize={{ base: 'lg', md: '2xl' }} ms="24px" fontWeight="700">
+          <Text
+            color={textColor}
+            fontSize={{ base: "lg", md: "2xl" }}
+            ms="24px"
+            fontWeight="700"
+          >
             Billing Management
           </Text>
           <Button
@@ -188,8 +204,8 @@ const PharmacyBilling = () => {
           </Button>
         </Flex>
 
-        <Flex justifyContent="center" mt={{ base: '20px', md: '30px' }}>
-          <Card width={{ base: '100%', md: '97%' }} borderRadius="md">
+        <Flex justifyContent="center" mt={{ base: "20px", md: "30px" }}>
+          <Card width={{ base: "100%", md: "97%" }} borderRadius="md">
             {loading ? (
               <Flex justify="center" align="center" height="10vh">
                 <Spinner size="xl" />
@@ -205,21 +221,54 @@ const PharmacyBilling = () => {
                 <Box overflowX="auto">
                   {isSmallScreen ? (
                     filteredBilling.map((item) => (
-                      <Box key={item.id} mb={4} p={4} borderWidth="1px" borderRadius="lg" overflow="hidden">
-                        <Text mb={1}><strong>ID:</strong> {item.id}</Text>
-                        <Text mb={1}><strong>Name:</strong> {item.patient_name}</Text>
-                        <Text mb={1}><strong>Phone Number:</strong> {item.phone_number}</Text>
-                        <Tooltip label={item.billing_items.map(it => `${it.label} (Qty: ${it.quantity})`).join(', ')}>
-                          <Link href="#" onClick={(e) => e.preventDefault()}>Click Here for Items</Link>
+                      <Box
+                        key={item.id}
+                        mb={4}
+                        p={4}
+                        borderWidth="1px"
+                        borderRadius="lg"
+                        overflow="hidden"
+                      >
+                        <Text mb={1}>
+                          <strong>ID:</strong> {item.id}
+                        </Text>
+                        <Text mb={1}>
+                          <strong>Name:</strong> {item.patient_name}
+                        </Text>
+                        <Text mb={1}>
+                          <strong>Phone Number:</strong> {item.phone_number}
+                        </Text>
+                        <Tooltip
+                          label={item.billing_items
+                            .map((it) => `${it.label} (Qty: ${it.quantity})`)
+                            .join(", ")}
+                        >
+                          <Link href="#" onClick={(e) => e.preventDefault()}>
+                            Click Here for Items
+                          </Link>
                         </Tooltip>
-                        <Text mb={1}><strong>Subtotal:</strong> {item.subtotal}</Text>
-                        <Text mb={1}><strong>Total:</strong> {item.total}</Text>
-                        <Text mb={1}><strong>Date:</strong> {new Date(item.date).toLocaleString("en-US", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric"
-                        })}</Text>
+                        <Text mb={1}>
+                          <strong>Subtotal:</strong> {item.subtotal}
+                        </Text>
+                        <Text mb={1}>
+                          <strong>Total:</strong> {item.total}
+                        </Text>
+                        <Text mb={1}>
+                          <strong>Date:</strong>{" "}
+                          {new Date(item.date).toLocaleString("en-US", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Text>
                         <Flex mt={2} justifyContent="space-between">
+                          <IconButton
+                            icon={<MdAdd />}
+                            onClick={() => handleQuickBill(item.phone_number)} // Pass phone number to Quick Bill
+                            aria-label="Quick Billing"
+                            colorScheme="green"
+                            size="sm"
+                          />
                           <IconButton
                             icon={<MdVisibility />}
                             onClick={() => handleViewBilling(item)}
@@ -245,7 +294,7 @@ const PharmacyBilling = () => {
                       </Box>
                     ))
                   ) : (
-                    <Table variant="simple" size={{ base: 'sm', md: 'md' }}>
+                    <Table variant="simple" size={{ base: "sm", md: "md" }}>
                       <Thead>
                         <Tr>
                           <Th>ID</Th>
@@ -265,19 +314,45 @@ const PharmacyBilling = () => {
                             <Td>{item.patient_name}</Td>
                             <Td>{item.phone_number}</Td>
                             <Td>
-                              <Tooltip label={item.billing_items.map(it => `${it.label} (Qty: ${it.quantity})`).join(', ')}>
-                                <Link href="#" onClick={(e) => e.preventDefault()}>Click Here</Link>
+                              <Tooltip
+                                label={item.billing_items
+                                  .map(
+                                    (it) => `${it.label} (Qty: ${it.quantity})`
+                                  )
+                                  .join(", ")}
+                              >
+                                <Link
+                                  href="#"
+                                  onClick={(e) => e.preventDefault()}
+                                >
+                                  Click Here
+                                </Link>
                               </Tooltip>
                             </Td>
                             <Td>{item.subtotal}</Td>
                             <Td>{item.total}</Td>
-                            <Td>{new Date(item.date).toLocaleString("en-US", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric"
-                            })}</Td>
                             <Td>
-                              <Flex flexDirection={{ base: 'column', md: 'row' }}>
+                              {new Date(item.date).toLocaleString("en-US", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </Td>
+                            <Td>
+                              <Flex
+                                flexDirection={{ base: "column", md: "row" }}
+                              >
+                                <IconButton
+                                  icon={<MdAdd />}
+                                  onClick={() =>
+                                    handleQuickBill(item.phone_number)
+                                  } // Pass phone number to Quick Bill
+                                  aria-label="Quick Billing"
+                                  mb={{ base: 1, md: 0 }}
+                                  mr={{ base: 0, md: 2 }}
+                                  colorScheme="green"
+                                  size="sm"
+                                />
                                 <IconButton
                                   icon={<MdVisibility />}
                                   onClick={() => handleViewBilling(item)}
@@ -318,7 +393,11 @@ const PharmacyBilling = () => {
       </Flex>
 
       {addBillingModal.isOpen && (
-        <AddBilling isOpen={addBillingModal.isOpen} onClose={addBillingModal.onClose} addNewBilling={handleAddBilling} />
+        <AddBilling
+          isOpen={addBillingModal.isOpen}
+          onClose={addBillingModal.onClose}
+          addNewBilling={handleAddBilling}
+        />
       )}
       {editBillingModal.isOpen && editBillingData && (
         <EditBilling
@@ -341,6 +420,14 @@ const PharmacyBilling = () => {
           isOpen={viewBillingModal.isOpen}
           onClose={viewBillingModal.onClose}
           billingData={viewBillingData}
+        />
+      )}
+      {quickBillModal.isOpen && (
+        <AddBilling
+          isOpen={quickBillModal.isOpen}
+          onClose={quickBillModal.onClose}
+          addNewBilling={handleAddBilling}
+          phoneNumber={quickBillPhoneNumber} // Pass the phone number as a prop
         />
       )}
     </Box>

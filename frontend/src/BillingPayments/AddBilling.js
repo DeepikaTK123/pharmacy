@@ -29,13 +29,13 @@ import {
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import { getMedicines, getPatientName, addService, getServices } from 'networks';
 
-const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
+const AddBilling = ({ isOpen, onClose, addNewBilling,phoneNumber }) => {
   const today = new Date().toISOString().split('T')[0];
 
   const [newBilling, setNewBilling] = useState({
     patientName: '',
     patientNumber: '',
-    phoneNumber: '',
+    phoneNumber: phoneNumber || '', 
     dob: '', // Date of Birth
     ageYear: null,
     ageMonth: null,
@@ -126,7 +126,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
 
-    if (name === 'phoneNumber' && value.length >= 10) {
+    if (name === 'phoneNumber') {
       try {
         const response = await getPatientName(value);
         if (response.data.status === 'success' && response.data.data.length > 0) {
@@ -175,7 +175,12 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
       setNewBilling(prev => ({ ...prev, [name]: value }));
     }
   };
-
+  useEffect(() => {
+    // Automatically fill patient details if phoneNumber prop is provided
+    if (phoneNumber) {
+      handleInputChange({ target: { name: 'phoneNumber', value: phoneNumber } });
+    }
+  }, [phoneNumber]);
   const handleItemChange = (selectedOptions, type) => {
     const updatedItems = selectedOptions.map(option => {
       const existingItem = newBilling.items.find(item => item.value === option.value && item.type === type);
