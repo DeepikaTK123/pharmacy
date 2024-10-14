@@ -115,28 +115,7 @@ def create_table():
     cursor.execute(billing_items_table)
     conn.commit()
 
-    prescriptions = '''
-        CREATE TABLE IF NOT EXISTS prescriptions (
-            id SERIAL PRIMARY KEY,
-            doctor_name VARCHAR(255) NOT NULL,
-            patient_name VARCHAR(255) NOT NULL,
-            phone_number VARCHAR(15) NOT NULL,
-            patient_id VARCHAR(50),
-            patient_dob DATE NOT NULL,
-            patient_gender VARCHAR(10) NOT NULL,
-            blood_pressure VARCHAR(50),
-            temperature VARCHAR(50),
-            heart_beat VARCHAR(50),
-            spo2 VARCHAR(50),
-            diagnosis TEXT,
-            medication JSONB NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            tenant_id VARCHAR(255)
-        );
-    '''
-    cursor.execute(prescriptions)
-    conn.commit()
+  
 
     services = '''
         CREATE TABLE IF NOT EXISTS services (
@@ -156,6 +135,7 @@ def create_table():
             id SERIAL PRIMARY KEY,
             patient_no VARCHAR(50) NOT NULL,
             name VARCHAR(255) NOT NULL,
+            doctor_name VARCHAR(255) NOT NULL,
             phone_number VARCHAR(20) NOT NULL,
             dob DATE NOT NULL,
             gender VARCHAR(10) NOT NULL,
@@ -166,7 +146,71 @@ def create_table():
     '''
     cursor.execute(patients)
     conn.commit()
+    records = '''
+        CREATE TABLE IF NOT EXISTS records (
+            id SERIAL PRIMARY KEY,
+            patient_id INT NOT NULL,
+            diagnosis VARCHAR(255),
+            blood_pressure DOUBLE PRECISION,
+            heart_rate DOUBLE PRECISION,
+            temperature DOUBLE PRECISION,
+            spo2 DOUBLE PRECISION,
+            additional_instructions TEXT,
+            doctor_name VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    '''
+    cursor.execute(records)
+    conn.commit()
 
+    # Prescriptions table
+    prescriptions = '''
+        CREATE TABLE IF NOT EXISTS prescriptions (
+            id SERIAL PRIMARY KEY,
+            record_id INT NOT NULL,
+            patient_id INT NOT NULL,
+            medicine_id INT,
+            medicine_name VARCHAR(255),
+            quantity INT,
+            food VARCHAR(50),
+            morning_dose INT,
+            afternoon_dose INT,
+            evening_dose INT,
+            FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+        );
+    '''
+    cursor.execute(prescriptions)
+    conn.commit()
+
+    # Prescription Services table
+    prescription_services = '''
+        CREATE TABLE IF NOT EXISTS prescription_services (
+            id SERIAL PRIMARY KEY,
+            record_id INT NOT NULL,
+            patient_id INT NOT NULL,
+            service_id INT,
+            service_name VARCHAR(255),
+            price DECIMAL(10, 2),
+            FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+        );
+    '''
+    cursor.execute(prescription_services)
+    conn.commit()
+
+    # Marks table
+    marks = '''
+        CREATE TABLE IF NOT EXISTS marks (
+            id SERIAL PRIMARY KEY,
+            record_id INT NOT NULL,
+            patient_id INT NOT NULL,
+            markX INT,
+            markY INT,
+            markColor VARCHAR(50),
+            FOREIGN KEY (record_id) REFERENCES records(id) ON DELETE CASCADE
+        );
+    '''
+    cursor.execute(marks)
+    conn.commit()
     conn.close()
     print("Tables created successfully.")
 

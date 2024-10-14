@@ -30,11 +30,11 @@ class AddBillingRecord(Resource):
             if not patient_id:
 
                 insert_patient_query = """
-                INSERT INTO patients(tenant_id, patient_no, name, phone_number, dob, gender, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                INSERT INTO patients(tenant_id,doctor_name, patient_no, name, phone_number, dob, gender, created_at, updated_at)
+                VALUES (%s, %s, %s,%s, %s, %s, %s, %s, %s) RETURNING id
                 """
                 patient_record_to_insert = (
-                    account_id["tenant_id"], value.get("patientNumber", ""), value.get("patientName", ""), 
+                    account_id["tenant_id"],value.get("doctor_name", ""), value.get("patientNumber", ""), value.get("patientName", ""), 
                     value.get("phoneNumber", ""), value.get("dob", ""), value.get("gender", ""), start_time, start_time
                 )
                 cursor.execute(insert_patient_query, patient_record_to_insert)
@@ -48,7 +48,7 @@ class AddBillingRecord(Resource):
             insert_query = """
             INSERT INTO billing(patient_name, phone_number, dob, date, status, discount, subtotal, cgst, sgst, total, 
             last_updated, tenant_id, age_year, age_month, gender, patient_number,patient_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """
             record_to_insert = (
                 value.get("patientName", ""), value.get("phoneNumber", ""), value.get("dob", ""), value.get("date", ""), 

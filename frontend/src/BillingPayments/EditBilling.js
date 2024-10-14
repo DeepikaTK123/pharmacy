@@ -191,6 +191,7 @@ const EditBilling = ({ isOpen, onClose, updateBillingProp, updateBilling }) => {
           quantityAvailable: medicineData ? medicineData.quantityAvailable : item.quantity,
           originalQuantity: item.quantity,
           price: item.price,
+          rate:item.rate,
           total: item.total,
           batchNo: medicineData ? medicineData.batchNo:"",
           manufacturedBy: medicineData ? medicineData.manufacturedBy:"",

@@ -51,7 +51,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
   const [newService, setNewService] = useState({ name: '', price: '' });
   const [isAddingService, setIsAddingService] = useState(false);
   const toast = useToast();
-
+  const doctorName=JSON.parse(sessionStorage.getItem("data")).username
   useEffect(() => {
     const fetchMedicines = async () => {
       try {
@@ -184,7 +184,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
         ...option,
         type,
         quantity: type === 'medicine' ? 0 : 1, 
-        quantityAvailable: itemData?.quantityAvailable || 1,
+        quantityAvailable: itemData?.quantityAvailable || 0,
         originalQuantity: itemData?.originalQuantity || 1,
         price: itemData?.mrp || itemData?.price,
         total: itemData?.total,
@@ -288,6 +288,7 @@ const AddBilling = ({ isOpen, onClose, addNewBilling }) => {
 
       const billingPayload = {
         ...newBilling,
+        doctor_name:doctorName,
         subtotal: subtotal,
         cgst: sgstAmount.toFixed(2),
         sgst: cgstAmount.toFixed(2),

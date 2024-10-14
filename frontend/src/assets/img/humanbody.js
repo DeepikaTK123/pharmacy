@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useRef } from "react";
 
-const HumanBodySVG = ({ markX = 150, markY = 250, markColor = 'red' }) => (
-    <svg fill="black" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" 
-    width="800px" height="300px" viewBox="0 0 206.326 206.326">
-<g>
-   <g>
-       <path d="M104.265,117.959c-0.304,3.58,2.126,22.529,3.38,29.959c0.597,3.52,2.234,9.255,1.645,12.3
+const HumanBodySVG = ({ marks, onBodyClick }) => {
+  const svgRef = useRef(null);
+
+  const handleClick = (e) => {
+    const svg = svgRef.current;
+    const point = svg.createSVGPoint();
+    point.x = e.clientX;
+    point.y = e.clientY;
+    
+    // Transform to the SVG coordinate system
+    const transformedPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+
+    onBodyClick(transformedPoint.x, transformedPoint.y);
+  };
+console.log(marks)
+  return (
+    <svg
+      ref={svgRef}
+      onClick={handleClick}
+      fill="black"
+      version="1.1"
+      id="Capa_1"
+      xmlns="http://www.w3.org/2000/svg"
+      height="300px"
+      viewBox="0 0 206.326 206.326"
+    >
+      <g>
+        <g>
+          <path d="M104.265,117.959c-0.304,3.58,2.126,22.529,3.38,29.959c0.597,3.52,2.234,9.255,1.645,12.3
            c-0.841,4.244-1.084,9.736-0.621,12.934c0.292,1.942,1.211,10.899-0.104,14.175c-0.688,1.718-1.949,10.522-1.949,10.522
            c-3.285,8.294-1.431,7.886-1.431,7.886c1.017,1.248,2.759,0.098,2.759,0.098c1.327,0.846,2.246-0.201,2.246-0.201
            c1.139,0.943,2.467-0.116,2.467-0.116c1.431,0.743,2.758-0.627,2.758-0.627c0.822,0.414,1.023-0.109,1.023-0.109
@@ -36,10 +59,20 @@ const HumanBodySVG = ({ markX = 150, markY = 250, markColor = 'red' }) => (
            c0,0,0.91,1.047,2.237,0.201c0,0,1.742,1.175,2.777-0.098c0,0,1.839,0.408-1.435-7.886c0,0-1.254-8.793-1.945-10.522
            c-1.318-3.275-0.387-12.251-0.106-14.175c0.453-3.216,0.21-8.695-0.618-12.934c-0.606-3.038,1.035-8.774,1.641-12.3
            c1.245-7.423,3.685-26.373,3.38-29.959l1.008,0.354C103.809,118.312,104.265,117.959,104.265,117.959z"/>
-   </g>
-</g>
-<circle cx={markX} cy={markY} r="3" fill={markColor} />
-</svg>
-);
+        </g>
+      </g>
+      {/* Render marks */}
+      {marks.map((mark, index) => (
+        <circle
+          key={index}
+          cx={mark.markx}
+          cy={mark.marky}
+          r="5"
+          fill={mark.markcolor}
+        />
+      ))}
+    </svg>
+  );
+};
 
 export default HumanBodySVG;

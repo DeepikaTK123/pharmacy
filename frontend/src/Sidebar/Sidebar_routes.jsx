@@ -31,13 +31,7 @@ const SidebarRoutes = [
     icon: <Icon as={MdPayment} width="20px" height="20px" color="inherit" />,
     sidebar: true,
   },
-  {
-    name: "Prescription",
-    layout: "/admin",
-    path: "/prescription",
-    icon: <Icon as={MdAssignment} width="20px" height="20px" color="inherit" />,
-    sidebar: true,
-  },
+
   {
     name: "Services",
     layout: "/admin",

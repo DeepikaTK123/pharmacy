@@ -8,7 +8,7 @@ import BillsAndPayments from "BillingPayments/BillingAndPayments";
 import Prescription from "Prescription/Prescription";
 import Services from "Services/Services";
 import Patients from "Patients/Patients";
-import PatientDetails from "Patients/PatientDetail";
+import PatientDetails from "PatientDetails/PatientDetail";
 
 const LazyLoad = () => {
   useEffect(() => {

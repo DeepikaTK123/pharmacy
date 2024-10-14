@@ -82,28 +82,29 @@ class GetRevenueChart(Resource):
             # SQL query to fetch data from the billing table
             if value in ['weekly', 'monthly','3months']:
                 sql_select_query = f"""
-                   WITH medicine_data AS (
-    SELECT 
-        DATE(date) AS interval_date,
-        jsonb_array_elements(items::jsonb) AS medicine, -- Unnest the JSON array
-        total,
-        (jsonb_array_elements(items::jsonb)->>'quantity')::numeric AS quantity
-    FROM 
-        billing
-    WHERE 
-        date >= '{start_date_str}' AND tenant_id = '{tenant_id}'
-)
-SELECT 
-    interval_date,
-    SUM((medicine->>'price')::numeric * quantity) AS total_amount,
-    SUM(((medicine->>'price')::numeric - (medicine->>'rate')::numeric) * quantity) AS total_profit
-FROM 
-    medicine_data
-GROUP BY 
-    interval_date
-ORDER BY 
-    interval_date ASC;
-
+                 WITH item_data AS (
+                        SELECT 
+                            bi.billing_id,
+                            b.date::DATE AS interval_date,
+                            bi.price::numeric * bi.quantity::numeric AS total_amount,
+                            (bi.price::numeric - COALESCE(bi.rate::numeric, 0)) * bi.quantity::numeric AS total_profit
+                        FROM 
+                            billing_items bi
+                        JOIN 
+                            billing b ON bi.billing_id = b.id
+                        WHERE 
+                            b.date >= '{start_date_str}' AND b.tenant_id = '{tenant_id}'
+                    )
+                    SELECT 
+                        interval_date,
+                        SUM(total_amount) AS total_amount,
+                        SUM(total_profit) AS total_profit
+                    FROM 
+                        item_data
+                    GROUP BY 
+                        interval_date
+                    ORDER BY 
+                        interval_date ASC;
                 """
            
 
@@ -124,8 +125,6 @@ ORDER BY
             return make_response(jsonify({"status": "error", "message": str(e), "data": {}}), 500)
 
 api.add_resource(GetRevenueChart, "/api/dashboard/getrevenuechart")
-
-
 
 class GetLowStockMedicines(Resource):
     @token_required

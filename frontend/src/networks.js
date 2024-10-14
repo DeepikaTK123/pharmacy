@@ -191,3 +191,7 @@ export const getPrescriptions = (id) => {
 export const getBills = (id) => {
   return axiosInstance.get(`/api/patient/bills/${id}`);
 };
+
+export const addPatientRecord = (data) => {
+  return axiosInstance.post('/api/patient/record/add', data);
+};

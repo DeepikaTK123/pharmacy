@@ -17,6 +17,8 @@ import {
   Tr,
   Th,
   Td,
+  useDisclosure,
+  Button,
 } from "@chakra-ui/react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
@@ -27,6 +29,8 @@ import {
   getPrescriptions,
   getBills,
 } from "networks"; // Adjust the import path accordingly
+import CreateRecordModal from "./AddRecord";
+import { MdAdd } from "react-icons/md";
 
 const PatientConditionChart = ({ title, data, category, categories }) => {
   const options = {
@@ -48,41 +52,42 @@ const PatientDetails = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const { isOpen, onOpen, onClose } = useDisclosure(); 
+  // const [marksList, setMarksList] = useState([]);
   useEffect(() => {
-    const fetchPatientData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch all data concurrently
-        const [
-          detailsResponse,
-          healthDataResponse,
-          prescriptionsResponse,
-          billsResponse,
-        ] = await Promise.all([
-          getPatientDetails(id),
-          getHealthData(id),
-          getPrescriptions(id),
-          getBills(id),
-        ]);
-
-        setPatientDetails(detailsResponse.data.data || {});
-        setHealthData(healthDataResponse.data.data || []);
-        setPrescriptions(prescriptionsResponse.data.data || []);
-        setBills(billsResponse.data.data || []);
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching patient data:", err);
-        setError("Failed to load patient data.");
-        setLoading(false);
-      }
-    };
-
+    
     fetchPatientData();
   }, [id]);
+  const fetchPatientData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all data concurrently
+      const [
+        detailsResponse,
+        healthDataResponse,
+        prescriptionsResponse,
+        billsResponse,
+      ] = await Promise.all([
+        getPatientDetails(id),
+        getHealthData(id),
+        getPrescriptions(id),
+        getBills(id),
+      ]);
+
+      setPatientDetails(detailsResponse.data.data || {});
+      setHealthData(healthDataResponse.data.data || []);
+      setPrescriptions(prescriptionsResponse.data.data || []);
+      setBills(billsResponse.data.data || []);
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching patient data:", err);
+      setError("Failed to load patient data.");
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -100,6 +105,16 @@ const PatientDetails = () => {
     );
   }
 
+  const recordhandleonclose=()=>{
+onClose()
+fetchPatientData()
+  }
+  const calculateAge = (dob) => {
+    const birthDate = new Date(dob);
+    const difference = Date.now() - birthDate.getTime();
+    const ageDate = new Date(difference);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  };
   return (
     <Box
       pt={{ base: "100px", md: "20px", xl: "35px" }}
@@ -111,6 +126,38 @@ const PatientDetails = () => {
             <Text fontSize="3xl" fontWeight="bold" color="teal.500">
               Patient Details
             </Text>
+            <Box mb={8} textAlign="right">
+            <Button  onClick={onOpen}
+            leftIcon={<MdAdd />}
+            colorScheme="teal"
+            // display="flex"
+            alignItems="center"
+            justifyContent="center"
+            fontFamily="inherit"
+            fontWeight="500"
+            fontSize={{ base: 'xs', md: 'sm' }}
+            textTransform="uppercase"
+            letterSpacing="0.4px"
+            color="white"
+            backgroundColor="#3d94cf"
+            border="2px solid rgba(255, 255, 255, 0.333)"
+            borderRadius="20px"
+            padding={{ base: '8px 12px', md: '10px 14px' }}
+            transform="translate(0px, 0px) rotate(0deg)"
+            transition="0.2s"
+            boxShadow="-4px -2px 16px 0px #ffffff, 4px 2px 16px 0px rgb(95 157 231 / 48%)"
+            _hover={{
+              color: '#516d91',
+              backgroundColor: '#E5EDF5',
+              boxShadow: '-2px -1px 8px 0px #ffffff, 2px 1px 8px 0px rgb(95 157 231 / 48%)',
+            }}
+            _active={{
+              boxShadow: 'none',
+            }}
+            >
+              Create Record
+            </Button>
+          </Box>
             {Object.keys(patientDetails).length ? (
               <Text fontSize="lg" fontWeight="bold" color="gray.600">
                 Diagnosis:{" "}
@@ -127,6 +174,7 @@ const PatientDetails = () => {
         </CardHeader>
         <Divider />
         <CardBody>
+      
           {Object.keys(patientDetails).length ? (
             <>
               <SimpleGrid columns={[1, null, 3]} spacing="40px" mb={5}>
@@ -140,7 +188,7 @@ const PatientDetails = () => {
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
                     Age:{" "}
                     <Text as="span" fontWeight="normal">
-                      {patientDetails.dob || "No data"}
+                      {new Date(patientDetails.dob).toLocaleDateString() || "No data"}({calculateAge(patientDetails.dob)} years)
                     </Text>
                   </Text>
                   <Text fontSize="lg" fontWeight="bold" color="gray.600">
@@ -153,6 +201,12 @@ const PatientDetails = () => {
                     Gender:{" "}
                     <Text as="span" fontWeight="normal">
                       {patientDetails.gender || "No data"}
+                    </Text>
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold" color="gray.600">
+                    Doctor:{" "}
+                    <Text as="span" fontWeight="normal">
+                      {patientDetails.doctor_name || "No data"}
                     </Text>
                   </Text>
                 </Box>
@@ -205,7 +259,10 @@ const PatientDetails = () => {
                   </Text>
                 </Box>
                 <Box display="flex" alignItems="center" justifyContent="center">
-                  <HumanBodySVG markX={115} markY={50} markColor="red" />
+                {healthData.length
+                        ?<HumanBodySVG marks={healthData[healthData.length - 1].marks} />
+                        : "No data"}{" "}
+                
                 </Box>
               </SimpleGrid>
               <Divider borderWidth="1px" />
@@ -216,32 +273,27 @@ const PatientDetails = () => {
                     title="Temperature"
                     data={healthData.map((data) => data.temperature)}
                     category="Temperature (°F)"
-                    categories={healthData.map((data) => data.visit_day)}
+                    categories={healthData.map((data) => data.created_at)}
                   />
                   <PatientConditionChart
                     title="Heart Rate"
                     data={healthData.map((data) => data.heart_rate)}
                     category="Heart Rate (bpm)"
-                    categories={healthData.map((data) => data.visit_day)}
+                    categories={healthData.map((data) => data.created_at)}
                   />
                   <PatientConditionChart
                     title="Blood Pressure"
                     data={healthData.map((data) => data.blood_pressure)}
                     category="Blood Pressure (mmHg)"
-                    categories={healthData.map((data) => data.visit_day)}
+                    categories={healthData.map((data) => data.created_at)}
                   />
                   <PatientConditionChart
                     title="SpO2"
                     data={healthData.map((data) => data.spo2)}
                     category="SpO2 (%)"
-                    categories={healthData.map((data) => data.visit_day)}
+                    categories={healthData.map((data) => data.created_at)}
                   />
-                  <PatientConditionChart
-                    title="Blood Sugar"
-                    data={healthData.map((data) => data.blood_sugar)}
-                    category="Blood Sugar (mg/dL)"
-                    categories={healthData.map((data) => data.visit_day)}
-                  />
+                 
                 </SimpleGrid>
               ) : (
                 <Text>No charts available</Text>
@@ -263,8 +315,8 @@ const PatientDetails = () => {
                     <Tbody>
                       {healthData.map((record, index) => (
                         <Tr key={index}>
-                          <Td>{record.visit_day || "No data"}</Td>
-                          <Td>{record.doctor || "No data"}</Td>
+                          <Td>{record.created_at || "No data"}</Td>
+                          <Td>{record.doctor_name || "No data"}</Td>
                           <Td>{record.diagnosis || "No data"}</Td>
                         </Tr>
                       ))}
@@ -318,7 +370,7 @@ const PatientDetails = () => {
                             >
                               Service:{" "}
                               <Text as="span" fontWeight="medium" >
-                                {record.service || "No data"}
+                                {record.services[record.services.length-1].service_name || "No data"}
                               </Text>
                             </Text>
                             {record.medications.length ? (
@@ -326,17 +378,16 @@ const PatientDetails = () => {
                                 {record.medications.map((medication, idx) => (
                                   <Text key={idx} color="gray.700" mb={1}>
                                     {" "}
-                                    {/* Adjusted margin-bottom */}
                                     <Text as="span" fontWeight="bold">
                                       {medication.name} ({medication.quantity})
                                     </Text>
-                                    {" - "}
+                                    {" : "}
                                     <Text
                                       as="span"
                                       fontWeight="medium"
                                       color="gray.600"
                                     >
-                                      {medication.timings} {medication.food}
+                                      {medication.timings} {medication.food} food
                                     </Text>
                                   </Text>
                                 ))}
@@ -381,8 +432,8 @@ const PatientDetails = () => {
                     <Tbody>
                       {bills.map((bill, index) => (
                         <Tr key={index}>
-                          <Td>{new Date(bill.created_at).toLocaleDateString()}</Td>
-                          <Td>Rs {bill.total_amount || "No data"}</Td>
+                          <Td>{new Date(bill.date).toLocaleDateString()}</Td>
+                          <Td>Rs {bill.total || "No data"}</Td>
                           <Td>{"Paid" || "No data"}</Td>
                         </Tr>
                       ))}
@@ -398,6 +449,7 @@ const PatientDetails = () => {
           )}
         </CardBody>
       </Card>
+      <CreateRecordModal isOpen={isOpen} onClose={recordhandleonclose} patientId={id} />
     </Box>
   );
 };
