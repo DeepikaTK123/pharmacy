@@ -6,48 +6,43 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                echo '📥 Checking out code...'
                 checkout scm
-            }
-        }
-
-        stage('Stop Existing Containers') {
-            steps {
-                echo '🛑 Stopping and removing old containers...'
-                sh 'docker-compose down --volumes || true'
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                echo '🔨 Building frontend and backend images...'
                 sh 'docker-compose build'
             }
         }
 
-        stage('Start Service') {
+        stage('Run Services') {
             steps {
-                echo '🚀 Starting services...'
                 sh 'docker-compose up -d'
             }
         }
 
-        stage('Verify Running Containers') {
+        stage('Wait for Backend to Be Ready') {
             steps {
-                echo '🔍 Showing running containers...'
-                sh 'docker ps'
+                script {
+                    sh 'sleep 10'  // Better to use a health check in production
+                }
             }
         }
-    }
 
-    post {
-        success {
-            echo '✅ Deployment successful!'
+        stage('Run Backend Tests') {
+            steps {
+                sh 'docker exec pharmacymanagement-backend-1 pytest'
+            }
         }
-        failure {
-            echo '❌ Deployment failed. Check logs above.'
+
+        // Optional: Stop containers after test
+        stage('Tear Down') {
+            steps {
+                sh 'docker-compose down'
+            }
         }
     }
 }
