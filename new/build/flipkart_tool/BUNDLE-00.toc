@@ -1,0 +1,3 @@
+([('flipkart_tool',
+   '/Users/deepika/pharmacymanagement/new/dist/flipkart_tool',
+   'EXECUTABLE')],)

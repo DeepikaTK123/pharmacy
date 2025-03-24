@@ -55,11 +55,12 @@ def restore_postgresql_db(host, port, dbname, user, password, backup_filename):
 
 # Usage
 if __name__ == "__main__":
-    HOST = '128.199.19.234'
-    PORT = 5432
+    HOST = '65.0.154.28'
+    PORT = 5433
     DBNAME = 'hospital_management'
     USER = 'Venki'
     PASSWORD = 'Venki@034'
-    BACKUP_FILENAME = 'hospital_management_backup_20241014233919.sql'
+    BACKUP_FILENAME = 'hospital_management_backup_20250109195703.sql'
 
     restore_postgresql_db(HOST, PORT, DBNAME, USER, PASSWORD, BACKUP_FILENAME)
+
