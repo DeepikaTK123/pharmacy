@@ -14,12 +14,12 @@ pipeline {
 
         stage('docker-compose') {
             steps {
-                sh '''which docker-compose
-                docker-compose --version
+                sh '''
+                    which docker-compose
+                    docker-compose --version
                 '''
             }
         }
-
 
         stage('Build Docker Images') {
             steps {
@@ -27,9 +27,15 @@ pipeline {
             }
         }
 
+        stage('Cleanup Containers') {
+            steps {
+                sh 'docker-compose down || true'
+            }
+        }
+
         stage('Run Services') {
             steps {
-                sh 'docker-compose up -d'
+                sh 'docker-compose up -d --remove-orphans --force-recreate'
             }
         }
 
@@ -47,7 +53,6 @@ pipeline {
             }
         }
 
-        // Optional: Stop containers after test
         stage('Tear Down') {
             steps {
                 sh 'docker-compose down'
