@@ -12,6 +12,15 @@ pipeline {
             }
         }
 
+        stage('docker-compose') {
+            steps {
+                sh '''which docker-compose
+                docker-compose --version
+                '''
+            }
+        }
+
+
         stage('Build Docker Images') {
             steps {
                 sh 'docker-compose build'
