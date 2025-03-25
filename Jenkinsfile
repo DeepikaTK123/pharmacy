@@ -14,19 +14,15 @@ pipeline {
 
         stage('Check Docker Compose Version') {
             steps {
-                sh '''
-                    docker compose version
-                '''
+                sh 'docker compose version'
             }
         }
 
-     
         stage('Check Docker') {
             steps {
                 sh 'docker --version && docker compose version'
             }
         }
-    
 
         stage('Build Docker Images') {
             steps {
@@ -40,6 +36,18 @@ pipeline {
             }
         }
 
+        stage('Force Cleanup Containers') {
+            steps {
+                sh '''
+                    docker compose down -v || true
+                    containers=$(docker ps -aq --filter name=pharmacymanagement)
+                    if [ ! -z "$containers" ]; then
+                        docker rm -f $containers || true
+                    fi
+                '''
+            }
+        }
+
         stage('Run Services') {
             steps {
                 sh 'docker compose up -d --remove-orphans --force-recreate'
@@ -49,7 +57,12 @@ pipeline {
         stage('Wait for Backend to Be Ready') {
             steps {
                 script {
-                    sh 'sleep 10'  // Replace with healthcheck logic later
+                    timeout(time: 60, unit: 'SECONDS') {
+                        waitUntil {
+                            def result = sh(script: "docker compose exec backend curl -s http://localhost:5000/health || true", returnStdout: true).trim()
+                            return result.contains("OK") || result.contains("healthy")
+                        }
+                    }
                 }
             }
         }
@@ -64,6 +77,12 @@ pipeline {
             steps {
                 sh 'docker compose down'
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker compose down || true'
         }
     }
 }
