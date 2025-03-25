@@ -26,7 +26,7 @@ pipeline {
                 sh 'docker --version && docker compose version'
             }
         }
-    }
+    
 
         stage('Build Docker Images') {
             steps {
