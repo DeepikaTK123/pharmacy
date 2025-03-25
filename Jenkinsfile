@@ -20,7 +20,7 @@ pipeline {
             }
         }
 
-        stages {
+     
         stage('Check Docker') {
             steps {
                 sh 'docker --version && docker compose version'
