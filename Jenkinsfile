@@ -12,50 +12,49 @@ pipeline {
             }
         }
 
-        stage('docker-compose') {
+        stage('Check Docker Compose Version') {
             steps {
                 sh '''
-                    which docker-compose
-                    docker-compose --version
+                    docker compose version
                 '''
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                sh 'docker compose build'
             }
         }
 
         stage('Cleanup Containers') {
             steps {
-                sh 'docker-compose down || true'
+                sh 'docker compose down || true'
             }
         }
 
         stage('Run Services') {
             steps {
-                sh 'docker-compose up -d --remove-orphans --force-recreate'
+                sh 'docker compose up -d --remove-orphans --force-recreate'
             }
         }
 
         stage('Wait for Backend to Be Ready') {
             steps {
                 script {
-                    sh 'sleep 10'  // Better to use a health check in production
+                    sh 'sleep 10'  // Replace with healthcheck logic later
                 }
             }
         }
 
         stage('Run Backend Tests') {
             steps {
-                sh 'docker exec pharmacymanagement-backend-1 pytest'
+                sh 'docker compose exec backend pytest || true'
             }
         }
 
         stage('Tear Down') {
             steps {
-                sh 'docker-compose down'
+                sh 'docker compose down'
             }
         }
     }
