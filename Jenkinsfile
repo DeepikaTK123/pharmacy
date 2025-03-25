@@ -18,6 +18,18 @@ pipeline {
             }
         }
 
+        stage('Free Port 5000') {
+            steps {
+                sh '''
+                    PID=$(lsof -t -i:5000 || true)
+                    if [ ! -z "$PID" ]; then
+                        echo "Port 5000 is in use by PID $PID. Killing it..."
+                        kill -9 $PID || true
+                    fi
+                '''
+            }
+        }
+
         stage('Check Docker') {
             steps {
                 sh 'docker --version && docker compose version'
