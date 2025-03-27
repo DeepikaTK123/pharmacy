@@ -16,7 +16,14 @@ pipeline {
 
         // namemn
 
-   
+        stage('Check Docker Compose Version') {
+            steps {
+                sh '''
+                    docker compose version
+                '''
+            }
+        }
+
      
         stage('Check Docker') {
             steps {
@@ -25,7 +32,7 @@ pipeline {
         }
     
 
-       
+        stage('Build Docker Images') {
             steps {
                 sh 'DOCKER_BUILDKIT=0 docker compose build'
             }
