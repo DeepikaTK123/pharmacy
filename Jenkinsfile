@@ -14,6 +14,8 @@ pipeline {
             }
         }
 
+        // namemn
+
         stage('Check Docker Compose Version') {
             steps {
                 sh '''
