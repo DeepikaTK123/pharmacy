@@ -5,6 +5,8 @@ pipeline {
         COMPOSE_PROJECT_NAME = "pharmacymanagement"
     }
 
+    // jijkj
+
     stages {
         stage('Checkout') {
             steps {
