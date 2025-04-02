@@ -7,6 +7,10 @@ pipeline {
 
     // jijkj
 
+
+
+    // kkojjiuji
+
     stages {
         stage('Checkout') {
             steps {
