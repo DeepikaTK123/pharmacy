@@ -69,6 +69,8 @@ pipeline {
             }
         }
 
+
+//  dadad
         stage('Run Backend Tests') {
             steps {
                 sh 'docker compose exec backend pytest || true'
