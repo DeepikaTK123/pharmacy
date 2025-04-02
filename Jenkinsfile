@@ -83,6 +83,8 @@ pipeline {
         stage('Tear Down') {
             steps {
                 sh 'docker compose down'
+
+                // dfdf
             }
         }
     }
